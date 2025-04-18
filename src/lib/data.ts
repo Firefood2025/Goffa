@@ -1,4 +1,3 @@
-
 import { PantryItemData } from '@/components/pantry/PantryItem';
 import { RecipeData } from '@/components/recipes/RecipeCard';
 import { ShoppingItemData } from '@/components/shopping/ShoppingItem';
@@ -72,42 +71,43 @@ export const mockPantryItems: PantryItemData[] = [
 export const mockRecipes: RecipeData[] = [
   {
     id: '1',
-    title: 'Chicken Pasta with Tomatoes',
-    image: 'https://source.unsplash.com/random/800x600/?pasta,chicken',
-    cookTime: 30,
-    ingredients: ['Chicken Breast', 'Pasta', 'Tomatoes', 'Olive Oil', 'Garlic', 'Basil'],
+    title: 'Tunisian Couscous with Vegetables',
+    image: 'https://source.unsplash.com/random/800x600/?couscous,tunisian',
+    cookTime: 45,
+    ingredients: ['Couscous', 'Chickpeas', 'Carrots', 'Zucchini', 'Tomatoes', 'Harissa'],
     matchingIngredients: 3,
-    difficulty: 'Easy',
-    cuisine: 'Italian'
+    difficulty: 'Medium',
+    cuisine: 'Tunisian'
   },
   {
     id: '2',
-    title: 'Classic Scrambled Eggs on Toast',
-    image: 'https://source.unsplash.com/random/800x600/?eggs,toast',
-    cookTime: 15,
-    ingredients: ['Eggs', 'Bread', 'Butter', 'Salt', 'Pepper'],
+    title: 'French Ratatouille',
+    image: 'https://source.unsplash.com/random/800x600/?ratatouille,french',
+    cookTime: 60,
+    ingredients: ['Eggplant', 'Zucchini', 'Tomatoes', 'Bell Peppers', 'Onions', 'Herbs'],
     matchingIngredients: 2,
-    difficulty: 'Easy'
+    difficulty: 'Medium',
+    cuisine: 'French'
   },
   {
     id: '3',
-    title: 'Chicken and Pea Risotto',
-    image: 'https://source.unsplash.com/random/800x600/?risotto',
-    cookTime: 45,
-    ingredients: ['Chicken Breast', 'Frozen Peas', 'Arborio Rice', 'Onion', 'Garlic', 'Chicken Stock', 'Parmesan'],
+    title: 'Oriental Shawarma',
+    image: 'https://source.unsplash.com/random/800x600/?shawarma,middle-eastern',
+    cookTime: 90,
+    ingredients: ['Chicken', 'Pita Bread', 'Tahini', 'Garlic', 'Vegetables'],
     matchingIngredients: 2,
-    difficulty: 'Medium',
-    cuisine: 'Italian'
+    difficulty: 'Hard',
+    cuisine: 'Oriental'
   },
   {
     id: '4',
-    title: 'Milk and Cereal',
-    image: 'https://source.unsplash.com/random/800x600/?cereal,milk',
-    cookTime: 5,
-    ingredients: ['Milk', 'Cereal'],
-    matchingIngredients: 1,
+    title: 'Tunisian Shakshuka',
+    image: 'https://source.unsplash.com/random/800x600/?shakshuka,eggs',
+    cookTime: 25,
+    ingredients: ['Eggs', 'Tomatoes', 'Bell Peppers', 'Onions', 'Spices'],
+    matchingIngredients: 3,
     difficulty: 'Easy',
-    cuisine: 'Breakfast'
+    cuisine: 'Tunisian'
   }
 ];
 
