@@ -2,7 +2,7 @@
 import React from 'react';
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ViewGrid, ListFilter } from 'lucide-react';
+import { Grid, List as ListIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export type ViewMode = 'grid' | 'list';
@@ -34,7 +34,7 @@ export function ListLayout({
             className={cn(viewMode === 'grid' && "bg-muted")}
             aria-label="Grid view"
           >
-            <ViewGrid size={20} />
+            <Grid size={20} />
           </Button>
           <Button
             variant="ghost"
@@ -43,7 +43,7 @@ export function ListLayout({
             className={cn(viewMode === 'list' && "bg-muted")}
             aria-label="List view"
           >
-            <ListFilter size={20} />
+            <ListIcon size={20} />
           </Button>
         </div>
       </CardHeader>
