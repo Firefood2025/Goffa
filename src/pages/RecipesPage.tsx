@@ -1,15 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-
+import { createClient } from '@supabase/supabase-js';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import RecipeList from '@/components/recipes/RecipeList';
 import CuisineSelector, { Cuisine } from '@/components/recipes/CuisineSelector';
 import { RecipeData } from '@/components/recipes/RecipeCard';
-
 import { mockRecipes } from '@/lib/data';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const RecipesPage = () => {
   const navigate = useNavigate();
@@ -17,6 +21,7 @@ const RecipesPage = () => {
   
   const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>('All');
   const [recipes, setRecipes] = useState<RecipeData[]>(mockRecipes);
+  const [isLoading, setIsLoading] = useState(false);
   
   const handleCuisineSelect = (cuisine: Cuisine) => {
     setSelectedCuisine(cuisine);
@@ -27,6 +32,59 @@ const RecipesPage = () => {
         recipe.cuisine?.toLowerCase() === cuisine.toLowerCase()
       );
       setRecipes(filteredRecipes);
+    }
+  };
+
+  const getAiSuggestions = async () => {
+    setIsLoading(true);
+    try {
+      const { data: pantryItems } = await supabase
+        .from('pantry_items')
+        .select('name')
+        .limit(10);
+
+      const ingredients = pantryItems?.map(item => item.name) || [];
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/getRecipeSuggestions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ingredients }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to get recipe suggestions');
+      }
+
+      const data = await response.json();
+      const aiRecipes = data.recipes.map((recipe: any, index: number) => ({
+        ...recipe,
+        id: `ai-${index}`,
+        image: `https://source.unsplash.com/random/800x600/?${recipe.title.toLowerCase().replace(/\s+/g, ',')}`,
+        matchingIngredients: ingredients.length
+      }));
+
+      setRecipes(aiRecipes);
+      toast({
+        title: "AI Suggestions Ready",
+        description: "Based on your pantry items",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error getting AI suggestions:', error);
+      toast({
+        title: "Couldn't get suggestions",
+        description: "Please try again later",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -54,6 +112,11 @@ const RecipesPage = () => {
     navigate('/');
   };
   
+  useEffect(() => {
+    // Get AI suggestions when the page loads
+    getAiSuggestions();
+  }, []);
+  
   return (
     <div className="min-h-screen bg-kitchen-cream flex flex-col">
       <Header 
@@ -72,6 +135,7 @@ const RecipesPage = () => {
           recipes={recipes}
           onRecipeClick={handleRecipeClick}
           onFilterClick={handleFilterClick}
+          isLoading={isLoading}
         />
       </main>
       

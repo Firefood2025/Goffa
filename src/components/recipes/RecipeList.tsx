@@ -8,13 +8,23 @@ interface RecipeListProps {
   recipes: RecipeData[];
   onRecipeClick: (id: string) => void;
   onFilterClick: () => void;
+  isLoading?: boolean;
 }
 
 const RecipeList: React.FC<RecipeListProps> = ({ 
   recipes, 
   onRecipeClick,
-  onFilterClick
+  onFilterClick,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kitchen-green"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-20">
       <div className="sticky top-0 bg-white z-10 pb-4">
