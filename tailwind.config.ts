@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,12 +62,26 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Custom kitchen-inspired colors
+				kitchen: {
+					cream: '#f8f5f0',
+					green: '#4a6741',
+					wood: '#a67c52',
+					stone: '#7d7f7d',
+					berry: '#a4303f',
+					yellow: '#f2c94c',
+					dark: '#3a3a3a'
 				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			fontFamily: {
+				sans: ['Nunito Sans', 'sans-serif'],
+				heading: ['Montserrat', 'sans-serif']
 			},
 			keyframes: {
 				'accordion-down': {

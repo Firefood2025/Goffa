@@ -1,12 +1,67 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import { ChefHat, RefrigeratorIcon, Plus, ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import ActionTile from '@/components/home/ActionTile';
+import ExpiringSoonSection from '@/components/home/ExpiringSoonSection';
+
+import { getExpiringSoonItems } from '@/lib/data';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const expiringSoonItems = getExpiringSoonItems(7);
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-kitchen-cream kitchen-texture flex flex-col">
+      <Header title="PantryChef AI" />
+      
+      <main className="flex-1 px-4 py-6 mb-16">
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold font-heading text-kitchen-dark">Hello, Chef!</h2>
+          <p className="text-gray-600">What would you like to do today?</p>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <ActionTile
+            title="What Can I Make?"
+            icon={ChefHat}
+            to="/recipes"
+            variant="primary"
+            className="col-span-2 h-40"
+          />
+          
+          <ActionTile
+            title="My Pantry"
+            icon={RefrigeratorIcon}
+            to="/pantry"
+            variant="secondary"
+            className="h-32"
+          />
+          
+          <ActionTile
+            title="Add Item"
+            icon={Plus}
+            to="/pantry?action=add"
+            variant="accent"
+            className="h-32"
+          />
+          
+          <ActionTile
+            title="Shopping List"
+            icon={ShoppingCart}
+            to="/shopping-list"
+            variant="secondary"
+            className="col-span-2 h-32"
+          />
+        </div>
+        
+        <ExpiringSoonSection items={expiringSoonItems} />
+      </main>
+      
+      <Footer />
     </div>
   );
 };
