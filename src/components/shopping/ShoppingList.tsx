@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import ShoppingItem, { ShoppingItemData } from './ShoppingItem';
 import { Button } from '@/components/ui/button';
-import { Plus, Share2, CheckSquare, Trash2 } from 'lucide-react';
+import { Plus, Share2, Trash2 } from 'lucide-react';
+import { ListLayout, ViewMode } from '@/components/ui/list-layout';
 
 interface ShoppingListProps {
   items: ShoppingItemData[];
@@ -21,6 +22,9 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
   onClearChecked,
   onShare
 }) => {
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  
   // Group items by category
   const groupedItems = items.reduce((acc, item) => {
     if (!acc[item.category]) {
@@ -38,31 +42,26 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
   
   return (
     <div className="pb-20">
-      <div className="sticky top-0 bg-white z-10 pb-2">
+      <div className="sticky top-0 bg-white/80 backdrop-blur-sm z-10 pb-2">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Shopping List</h2>
           <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onShare}
-              className="border-kitchen-green text-kitchen-green"
-            >
-              <Share2 size={16} className="mr-1" />
-              Share
-            </Button>
-            
             <Button 
               onClick={onAddNew} 
               className="bg-kitchen-green hover:bg-kitchen-green/90"
             >
-              <Plus size={18} className="mr-1" /> Add
+              <Plus size={18} className="mr-1" /> Add Item
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={onShare}
+              className="border-kitchen-green text-kitchen-green"
+            >
+              <Share2 size={16} />
             </Button>
           </div>
-        </div>
-        
-        {hasCheckedItems && (
-          <div className="flex justify-end mb-2">
+          
+          {hasCheckedItems && (
             <Button 
               variant="ghost" 
               size="sm" 
@@ -72,11 +71,16 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
               <Trash2 size={14} className="mr-1" />
               Clear Checked
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       
-      <div className="bg-white rounded-lg border border-muted">
+      <ListLayout
+        title="Shopping List"
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        className="bg-gradient-to-br from-kitchen-cream to-white"
+      >
         {items.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <p className="mb-4">Your shopping list is empty.</p>
@@ -89,8 +93,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
             </Button>
           </div>
         ) : (
-          <>
-            {/* Unchecked items first, grouped by category */}
+          <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : ''}>
             {sortedCategories.map(category => {
               const categoryItems = groupedItems[category].filter(item => !item.isChecked);
               if (categoryItems.length === 0) return null;
@@ -100,40 +103,44 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
                   <div className="px-4 py-2 bg-muted/50 font-medium text-sm text-gray-600 uppercase">
                     {category}
                   </div>
-                  {categoryItems.map(item => (
-                    <ShoppingItem
-                      key={item.id}
-                      item={item}
-                      onToggle={onToggle}
-                      onDelete={onDelete}
-                    />
-                  ))}
+                  <div className={viewMode === 'grid' ? 'grid gap-2' : ''}>
+                    {categoryItems.map(item => (
+                      <ShoppingItem
+                        key={item.id}
+                        item={item}
+                        onToggle={onToggle}
+                        onDelete={onDelete}
+                      />
+                    ))}
+                  </div>
                 </div>
               );
             })}
             
-            {/* Checked items at the bottom */}
+            {/* Checked items section */}
             {hasCheckedItems && (
-              <div className="mt-4">
+              <div className="mt-4 col-span-full">
                 <div className="px-4 py-2 bg-muted/50 font-medium text-sm text-gray-600 uppercase flex items-center">
-                  <CheckSquare size={14} className="mr-2" />
+                  <Trash2 size={14} className="mr-2" />
                   Checked Items
                 </div>
-                {items
-                  .filter(item => item.isChecked)
-                  .map(item => (
-                    <ShoppingItem
-                      key={item.id}
-                      item={item}
-                      onToggle={onToggle}
-                      onDelete={onDelete}
-                    />
-                  ))}
+                <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-2' : ''}>
+                  {items
+                    .filter(item => item.isChecked)
+                    .map(item => (
+                      <ShoppingItem
+                        key={item.id}
+                        item={item}
+                        onToggle={onToggle}
+                        onDelete={onDelete}
+                      />
+                    ))}
+                </div>
               </div>
             )}
-          </>
+          </div>
         )}
-      </div>
+      </ListLayout>
     </div>
   );
 };
