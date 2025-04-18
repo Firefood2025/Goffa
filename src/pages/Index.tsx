@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ActionTile from '@/components/home/ActionTile';
 import ExpiringSoonSection from '@/components/home/ExpiringSoonSection';
+import FloatingGrabAndGoButton from '@/components/home/FloatingGrabAndGoButton';
 
 import { getExpiringSoonItems } from '@/lib/data';
 
@@ -61,6 +62,7 @@ const Index = () => {
         <ExpiringSoonSection items={expiringSoonItems} />
       </main>
       
+      <FloatingGrabAndGoButton />
       <Footer />
     </div>
   );
