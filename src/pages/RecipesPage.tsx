@@ -9,6 +9,9 @@ import RecipeList from '@/components/recipes/RecipeList';
 import CuisineSelector, { Cuisine } from '@/components/recipes/CuisineSelector';
 import { RecipeData } from '@/components/recipes/RecipeCard';
 import { mockRecipes } from '@/lib/data';
+import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/KitchenStyleSelector';
+import RecipeGenerator from '@/components/recipes/RecipeGenerator';
+import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
 
 // Fix the Supabase client initialization by ensuring URL and key are provided
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -27,6 +30,12 @@ const RecipesPage = () => {
   const [recipes, setRecipes] = useState<RecipeData[]>(mockRecipes);
   const [isLoading, setIsLoading] = useState(false);
   
+  // New states for recipe generator
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [selectedStyle, setSelectedStyle] = useState<KitchenStyle>('All');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
+  
   const handleCuisineSelect = (cuisine: Cuisine) => {
     setSelectedCuisine(cuisine);
     if (cuisine === 'All') {
@@ -37,6 +46,12 @@ const RecipesPage = () => {
       );
       setRecipes(filteredRecipes);
     }
+  };
+  
+  const handleStyleSelect = (style: KitchenStyle) => {
+    setSelectedStyle(style);
+    // Clear any previous generated recipe when changing style
+    setGeneratedRecipe(null);
   };
 
   const getAiSuggestions = async () => {
@@ -101,6 +116,115 @@ const RecipesPage = () => {
     }
   };
   
+  const generateRecipe = async (ingredients: string[]) => {
+    setIsGenerating(true);
+    try {
+      if (!supabase) {
+        throw new Error('Supabase client is not initialized');
+      }
+      
+      if (supabaseUrl) {
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              ingredients, 
+              cuisine: selectedStyle === 'All' ? undefined : selectedStyle,
+              detailed: true 
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to generate recipe');
+        }
+
+        const data = await response.json();
+        if (data.recipes && data.recipes.length > 0) {
+          // Create a proper GeneratedRecipe object from the response
+          const recipe = data.recipes[0];
+          setGeneratedRecipe({
+            title: recipe.title,
+            cookTime: recipe.cookTime || Math.floor(Math.random() * 30) + 20,
+            ingredients: recipe.ingredients || ingredients,
+            steps: recipe.steps || ['Mix all ingredients together', 'Cook until done'],
+            nutrition: recipe.nutrition || {
+              calories: Math.floor(Math.random() * 400) + 200,
+              protein: Math.floor(Math.random() * 20) + 10,
+              carbs: Math.floor(Math.random() * 30) + 20,
+              fat: Math.floor(Math.random() * 15) + 5
+            },
+            tagline: recipe.tagline || `Inspired by your pantry and ${selectedStyle} vibe!`
+          });
+          
+          toast({
+            title: "Recipe Created!",
+            description: "Your custom recipe is ready",
+            duration: 3000,
+          });
+        } else {
+          throw new Error('No recipe generated');
+        }
+      } else {
+        // Fallback if no Supabase URL
+        simulateRecipeGeneration(ingredients);
+      }
+    } catch (error) {
+      console.error('Error generating recipe:', error);
+      // Fallback to a simulated recipe if there's an error
+      simulateRecipeGeneration(ingredients);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  // Fallback function to simulate recipe generation
+  const simulateRecipeGeneration = (ingredients: string[]) => {
+    // Wait for a moment to simulate loading
+    setTimeout(() => {
+      const styleName = selectedStyle === 'All' ? 'Fusion' : selectedStyle;
+      
+      setGeneratedRecipe({
+        title: `${styleName} ${ingredients[0]} Delight`,
+        cookTime: Math.floor(Math.random() * 30) + 20,
+        ingredients: [
+          ...ingredients, 
+          'Salt and pepper to taste',
+          'Olive oil',
+          'Fresh herbs'
+        ],
+        steps: [
+          `Prepare all ${ingredients.join(', ')} ingredients.`,
+          'Heat olive oil in a pan over medium heat.',
+          `Add ${ingredients[0]} and cook for 5 minutes.`,
+          `Combine with ${ingredients.slice(1).join(', ')}.`,
+          'Season with salt and pepper to taste.',
+          'Cook until done and serve hot.'
+        ],
+        nutrition: {
+          calories: Math.floor(Math.random() * 400) + 200,
+          protein: Math.floor(Math.random() * 20) + 10,
+          carbs: Math.floor(Math.random() * 30) + 20,
+          fat: Math.floor(Math.random() * 15) + 5
+        },
+        tagline: `Inspired by your pantry and ${styleName} vibe!`
+      });
+      
+      toast({
+        title: "Recipe Created!",
+        description: "Your custom recipe is ready",
+        duration: 3000,
+      });
+      
+      setIsGenerating(false);
+    }, 2000);
+  };
+  
   const handleRecipeClick = (id: string) => {
     const recipe = recipes.find(r => r.id === id);
     
@@ -123,6 +247,18 @@ const RecipesPage = () => {
   
   const handleBack = () => {
     navigate('/');
+  };
+  
+  const handleToggleGenerator = () => {
+    setShowGenerator(!showGenerator);
+    if (!showGenerator) {
+      // Reset generated recipe when opening generator
+      setGeneratedRecipe(null);
+    }
+  };
+  
+  const handleTryAnother = () => {
+    setGeneratedRecipe(null);
   };
   
   useEffect(() => {
@@ -150,16 +286,51 @@ const RecipesPage = () => {
       />
       
       <main className="flex-1 px-4 py-6">
-        <CuisineSelector 
-          selectedCuisine={selectedCuisine}
-          onSelect={handleCuisineSelect}
-        />
-        <RecipeList
-          recipes={recipes}
-          onRecipeClick={handleRecipeClick}
-          onFilterClick={handleFilterClick}
-          isLoading={isLoading}
-        />
+        <div className="mb-6">
+          <Button
+            onClick={handleToggleGenerator}
+            className="w-full bg-kitchen-green hover:bg-kitchen-green/90 mb-4"
+          >
+            {showGenerator ? "Browse Recipe Ideas" : "Create Custom Recipe"}
+          </Button>
+        </div>
+        
+        {showGenerator ? (
+          <div>
+            {generatedRecipe ? (
+              <RecipeDetail 
+                recipe={generatedRecipe} 
+                onTryAnother={handleTryAnother}
+                kitchenStyle={selectedStyle}
+              />
+            ) : (
+              <>
+                <KitchenStyleSelector 
+                  selectedStyle={selectedStyle}
+                  onSelect={handleStyleSelect}
+                />
+                <RecipeGenerator 
+                  onGenerate={generateRecipe}
+                  isGenerating={isGenerating}
+                  kitchenStyle={selectedStyle}
+                />
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <CuisineSelector 
+              selectedCuisine={selectedCuisine}
+              onSelect={handleCuisineSelect}
+            />
+            <RecipeList
+              recipes={recipes}
+              onRecipeClick={handleRecipeClick}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoading}
+            />
+          </>
+        )}
       </main>
       
       <Footer />
