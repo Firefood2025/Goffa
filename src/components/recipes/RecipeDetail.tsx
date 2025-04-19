@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, ChefHat, Utensils } from 'lucide-react';
+import { Clock, ChefHat, Utensils, Share2, Copy, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export interface GeneratedRecipe {
   title: string;
@@ -28,14 +29,59 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
   onTryAnother,
   kitchenStyle
 }) => {
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: recipe.title,
-        text: `Check out this ${kitchenStyle} recipe: ${recipe.title}`,
-      }).catch(err => console.error('Error sharing:', err));
-    } else {
-      alert('Web Share API not supported on this browser.');
+  const { toast } = useToast();
+  const [copying, setCopying] = useState(false);
+
+  const createShareText = () => {
+    const ingredientsList = recipe.ingredients.map(i => `• ${i}`).join('\n');
+    const stepsList = recipe.steps.map((s, i) => `${i+1}. ${s}`).join('\n');
+    
+    return `🍽️ ${recipe.title} 🍽️\n\n${recipe.tagline}\n\nCooking Time: ${recipe.cookTime} min\nStyle: ${kitchenStyle}\n\n📋 INGREDIENTS:\n${ingredientsList}\n\n📝 INSTRUCTIONS:\n${stepsList}`;
+  };
+
+  const handleShare = async () => {
+    const shareText = createShareText();
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: recipe.title,
+          text: shareText,
+        });
+        toast({
+          title: "Shared successfully!",
+          description: "Recipe has been shared",
+        });
+      } else {
+        // Fallback to copy to clipboard
+        handleCopyToClipboard();
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+      // If sharing fails, fall back to clipboard
+      handleCopyToClipboard();
+    }
+  };
+
+  const handleCopyToClipboard = async () => {
+    const shareText = createShareText();
+    
+    setCopying(true);
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast({
+        title: "Copied to clipboard!",
+        description: "Recipe has been copied and is ready to share",
+      });
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast({
+        title: "Couldn't copy automatically",
+        description: "Please select and copy the recipe manually",
+        variant: "destructive",
+      });
+    } finally {
+      setTimeout(() => setCopying(false), 2000);
     }
   };
 
@@ -127,7 +173,17 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
             className="flex-1 border-kitchen-green text-kitchen-green hover:bg-kitchen-green hover:text-white"
             onClick={handleShare}
           >
-            Save & Share
+            {copying ? (
+              <>
+                <CheckCircle size={16} className="mr-1" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Share2 size={16} className="mr-1" />
+                Save & Share
+              </>
+            )}
           </Button>
         </div>
       </div>
