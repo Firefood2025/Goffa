@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -12,12 +11,11 @@ import { mockRecipes } from '@/lib/data';
 import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/KitchenStyleSelector';
 import RecipeGenerator from '@/components/recipes/RecipeGenerator';
 import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
+import { Button } from '@/components/ui/button';
 
-// Fix the Supabase client initialization by ensuring URL and key are provided
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Check if environment variables are defined before creating the client
 const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
@@ -30,7 +28,6 @@ const RecipesPage = () => {
   const [recipes, setRecipes] = useState<RecipeData[]>(mockRecipes);
   const [isLoading, setIsLoading] = useState(false);
   
-  // New states for recipe generator
   const [showGenerator, setShowGenerator] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<KitchenStyle>('All');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,14 +47,12 @@ const RecipesPage = () => {
   
   const handleStyleSelect = (style: KitchenStyle) => {
     setSelectedStyle(style);
-    // Clear any previous generated recipe when changing style
     setGeneratedRecipe(null);
   };
 
   const getAiSuggestions = async () => {
     setIsLoading(true);
     try {
-      // Check if Supabase client is available
       if (!supabase) {
         throw new Error('Supabase client is not initialized. Check your environment variables.');
       }
@@ -109,7 +104,6 @@ const RecipesPage = () => {
         variant: "destructive",
         duration: 3000,
       });
-      // Fall back to mock recipes on error
       setRecipes(mockRecipes);
     } finally {
       setIsLoading(false);
@@ -146,7 +140,6 @@ const RecipesPage = () => {
 
         const data = await response.json();
         if (data.recipes && data.recipes.length > 0) {
-          // Create a proper GeneratedRecipe object from the response
           const recipe = data.recipes[0];
           setGeneratedRecipe({
             title: recipe.title,
@@ -171,21 +164,17 @@ const RecipesPage = () => {
           throw new Error('No recipe generated');
         }
       } else {
-        // Fallback if no Supabase URL
         simulateRecipeGeneration(ingredients);
       }
     } catch (error) {
       console.error('Error generating recipe:', error);
-      // Fallback to a simulated recipe if there's an error
       simulateRecipeGeneration(ingredients);
     } finally {
       setIsGenerating(false);
     }
   };
   
-  // Fallback function to simulate recipe generation
   const simulateRecipeGeneration = (ingredients: string[]) => {
-    // Wait for a moment to simulate loading
     setTimeout(() => {
       const styleName = selectedStyle === 'All' ? 'Fusion' : selectedStyle;
       
@@ -252,7 +241,6 @@ const RecipesPage = () => {
   const handleToggleGenerator = () => {
     setShowGenerator(!showGenerator);
     if (!showGenerator) {
-      // Reset generated recipe when opening generator
       setGeneratedRecipe(null);
     }
   };
@@ -262,7 +250,6 @@ const RecipesPage = () => {
   };
   
   useEffect(() => {
-    // Only try to get AI suggestions if Supabase client is initialized
     if (supabase) {
       getAiSuggestions();
     } else {
