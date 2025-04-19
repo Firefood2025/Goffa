@@ -10,10 +10,14 @@ import CuisineSelector, { Cuisine } from '@/components/recipes/CuisineSelector';
 import { RecipeData } from '@/components/recipes/RecipeCard';
 import { mockRecipes } from '@/lib/data';
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+// Fix the Supabase client initialization by ensuring URL and key are provided
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Check if environment variables are defined before creating the client
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 const RecipesPage = () => {
   const navigate = useNavigate();
@@ -38,6 +42,11 @@ const RecipesPage = () => {
   const getAiSuggestions = async () => {
     setIsLoading(true);
     try {
+      // Check if Supabase client is available
+      if (!supabase) {
+        throw new Error('Supabase client is not initialized. Check your environment variables.');
+      }
+
       const { data: pantryItems } = await supabase
         .from('pantry_items')
         .select('name')
@@ -45,36 +54,38 @@ const RecipesPage = () => {
 
       const ingredients = pantryItems?.map(item => item.name) || [];
       
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/getRecipeSuggestions`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ ingredients }),
+      if (supabaseUrl) {
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ingredients }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to get recipe suggestions');
         }
-      );
 
-      if (!response.ok) {
-        throw new Error('Failed to get recipe suggestions');
+        const data = await response.json();
+        const aiRecipes = data.recipes.map((recipe: any, index: number) => ({
+          ...recipe,
+          id: `ai-${index}`,
+          image: `https://source.unsplash.com/random/800x600/?${recipe.title.toLowerCase().replace(/\s+/g, ',')}`,
+          matchingIngredients: ingredients.length
+        }));
+
+        setRecipes(aiRecipes);
+        toast({
+          title: "AI Suggestions Ready",
+          description: "Based on your pantry items",
+          duration: 3000,
+        });
       }
-
-      const data = await response.json();
-      const aiRecipes = data.recipes.map((recipe: any, index: number) => ({
-        ...recipe,
-        id: `ai-${index}`,
-        image: `https://source.unsplash.com/random/800x600/?${recipe.title.toLowerCase().replace(/\s+/g, ',')}`,
-        matchingIngredients: ingredients.length
-      }));
-
-      setRecipes(aiRecipes);
-      toast({
-        title: "AI Suggestions Ready",
-        description: "Based on your pantry items",
-        duration: 3000,
-      });
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
       toast({
@@ -83,6 +94,8 @@ const RecipesPage = () => {
         variant: "destructive",
         duration: 3000,
       });
+      // Fall back to mock recipes on error
+      setRecipes(mockRecipes);
     } finally {
       setIsLoading(false);
     }
@@ -113,8 +126,18 @@ const RecipesPage = () => {
   };
   
   useEffect(() => {
-    // Get AI suggestions when the page loads
-    getAiSuggestions();
+    // Only try to get AI suggestions if Supabase client is initialized
+    if (supabase) {
+      getAiSuggestions();
+    } else {
+      console.warn('Supabase client not initialized. Using mock recipes instead.');
+      setRecipes(mockRecipes);
+      toast({
+        title: "Using sample recipes",
+        description: "Supabase connection not available",
+        duration: 3000,
+      });
+    }
   }, []);
   
   return (
