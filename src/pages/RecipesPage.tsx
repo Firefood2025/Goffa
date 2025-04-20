@@ -12,6 +12,7 @@ import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/Kitchen
 import RecipeGenerator from '@/components/recipes/RecipeGenerator';
 import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
 import { Button } from '@/components/ui/button';
+import { searchRecipesByIngredients, searchRecipesByCuisine } from '@/services/mealDbService';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -33,15 +34,29 @@ const RecipesPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
   
-  const handleCuisineSelect = (cuisine: Cuisine) => {
+  const handleCuisineSelect = async (cuisine: Cuisine) => {
     setSelectedCuisine(cuisine);
-    if (cuisine === 'All') {
+    setIsLoading(true);
+    try {
+      if (cuisine === 'All') {
+        const pantryItems = await supabase?.from('pantry_items').select('name').limit(10);
+        const ingredients = pantryItems?.data?.map(item => item.name) || [];
+        const apiRecipes = await searchRecipesByIngredients(ingredients);
+        setRecipes(apiRecipes);
+      } else {
+        const apiRecipes = await searchRecipesByCuisine(cuisine);
+        setRecipes(apiRecipes);
+      }
+    } catch (error) {
+      console.error('Error fetching recipes:', error);
       setRecipes(mockRecipes);
-    } else {
-      const filteredRecipes = mockRecipes.filter(recipe => 
-        recipe.cuisine?.toLowerCase() === cuisine.toLowerCase()
-      );
-      setRecipes(filteredRecipes);
+      toast({
+        title: "Couldn't fetch recipes",
+        description: "Using sample recipes instead",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -250,17 +265,30 @@ const RecipesPage = () => {
   };
   
   useEffect(() => {
-    if (supabase) {
-      getAiSuggestions();
-    } else {
-      console.warn('Supabase client not initialized. Using mock recipes instead.');
-      setRecipes(mockRecipes);
-      toast({
-        title: "Using sample recipes",
-        description: "Supabase connection not available",
-        duration: 3000,
-      });
-    }
+    const fetchInitialRecipes = async () => {
+      setIsLoading(true);
+      try {
+        if (supabase) {
+          const { data: pantryItems } = await supabase
+            .from('pantry_items')
+            .select('name')
+            .limit(10);
+
+          const ingredients = pantryItems?.map(item => item.name) || [];
+          const apiRecipes = await searchRecipesByIngredients(ingredients);
+          setRecipes(apiRecipes);
+        } else {
+          setRecipes(mockRecipes);
+        }
+      } catch (error) {
+        console.error('Error fetching initial recipes:', error);
+        setRecipes(mockRecipes);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialRecipes();
   }, []);
   
   return (
