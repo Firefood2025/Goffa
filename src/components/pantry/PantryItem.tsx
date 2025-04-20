@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { Calendar, Minus, Plus, Trash2, MoreHorizontal, Snowflake, Archive, MoveVertical } from 'lucide-react';
+import { Calendar, Minus, Plus, Trash2, MoreHorizontal, Snowflake, Archive, MoveVertical, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CustomListType } from '@/pages/PantryPage';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,8 @@ interface PantryItemProps {
   viewMode?: 'grid' | 'list';
   customLists?: CustomListType[];
   onAddToList?: (itemId: string, listId: string) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (itemId: string, isSelected: boolean) => void;
 }
 
 const PantryItem: React.FC<PantryItemProps> = ({ 
@@ -42,7 +45,9 @@ const PantryItem: React.FC<PantryItemProps> = ({
   onDelete,
   viewMode = 'grid',
   customLists = [],
-  onAddToList
+  onAddToList,
+  isSelected = false,
+  onToggleSelect
 }) => {
   // Calculate days until expiry
   const getDaysUntilExpiry = () => {
@@ -108,6 +113,12 @@ const PantryItem: React.FC<PantryItemProps> = ({
     
     return colors[item.category as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    if (onToggleSelect) {
+      onToggleSelect(item.id, checked);
+    }
+  };
   
   if (viewMode === 'grid') {
     return (
@@ -118,7 +129,17 @@ const PantryItem: React.FC<PantryItemProps> = ({
             alt={item.name} 
             className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
           />
-          <div className="absolute top-2 right-2">
+          <div className="absolute top-2 right-2 flex gap-2">
+            {onToggleSelect && (
+              <div className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center">
+                <Checkbox 
+                  checked={isSelected}
+                  onCheckedChange={handleCheckboxChange}
+                  aria-label={`Select ${item.name}`}
+                  className="data-[state=checked]:bg-kitchen-green data-[state=checked]:text-white"
+                />
+              </div>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white">
@@ -202,6 +223,16 @@ const PantryItem: React.FC<PantryItemProps> = ({
   return (
     <div className="flex items-center justify-between p-4 border border-muted rounded-lg bg-white hover:shadow-sm transition-shadow duration-200">
       <div className="flex items-center flex-1">
+        {onToggleSelect && (
+          <div className="mr-3">
+            <Checkbox 
+              checked={isSelected}
+              onCheckedChange={handleCheckboxChange}
+              aria-label={`Select ${item.name}`}
+              className="data-[state=checked]:bg-kitchen-green data-[state=checked]:text-white"
+            />
+          </div>
+        )}
         <div className="w-16 h-16 rounded overflow-hidden bg-gray-100 mr-4 flex-shrink-0">
           <img 
             src={getPlaceholderImage()} 

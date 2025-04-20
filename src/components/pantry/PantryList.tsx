@@ -23,6 +23,8 @@ interface PantryListProps {
   onAddNew: () => void;
   customLists?: CustomListType[];
   onAddToList?: (itemId: string, listId: string) => void;
+  selectedItems?: string[];
+  onToggleSelectItem?: (itemId: string, isSelected: boolean) => void;
 }
 
 const PantryList: React.FC<PantryListProps> = ({ 
@@ -33,6 +35,8 @@ const PantryList: React.FC<PantryListProps> = ({
   onAddNew,
   customLists = [],
   onAddToList,
+  selectedItems = [],
+  onToggleSelectItem,
 }) => {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -187,6 +191,8 @@ const PantryList: React.FC<PantryListProps> = ({
                 viewMode={viewMode}
                 customLists={customLists}
                 onAddToList={onAddToList}
+                isSelected={selectedItems.includes(item.id)}
+                onToggleSelect={onToggleSelectItem}
               />
             </div>
           ))

@@ -12,6 +12,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from '@/components/ui/label';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { mockPantryItems } from '@/lib/data';
 import PantryActions from '@/components/pantry/PantryActions';
@@ -29,6 +45,15 @@ const PantryPage = () => {
   
   const [pantryItems, setPantryItems] = useState<PantryItemData[]>(mockPantryItems);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
+  const [newItem, setNewItem] = useState<Partial<PantryItemData>>({
+    name: '',
+    quantity: 1,
+    unit: 'piece',
+    category: 'pantry',
+    addedDate: new Date().toISOString(),
+  });
   const [customLists, setCustomLists] = useState<CustomListType[]>([
     { id: '1', name: 'Weekly Recipes', items: ['1', '3', '5'] },
     { id: '2', name: 'Smoothie Ingredients', items: ['3'] },
@@ -63,6 +88,9 @@ const PantryPage = () => {
       }))
     );
     
+    // Remove from selected items if it was selected
+    setSelectedItems(selected => selected.filter(itemId => itemId !== id));
+    
     toast({
       title: "Item removed",
       description: "The item has been removed from your pantry",
@@ -71,9 +99,47 @@ const PantryPage = () => {
   };
   
   const handleAddNew = () => {
+    setAddItemDialogOpen(true);
+  };
+  
+  const handleSaveNewItem = () => {
+    if (!newItem.name) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for the item",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    const newId = (pantryItems.length + 1).toString();
+    const fullNewItem: PantryItemData = {
+      id: newId,
+      name: newItem.name as string,
+      quantity: newItem.quantity || 1,
+      unit: newItem.unit || 'piece',
+      category: newItem.category || 'pantry',
+      addedDate: new Date().toISOString(),
+      ...(newItem.expiryDate && { expiryDate: newItem.expiryDate }),
+      ...(newItem.image && { image: newItem.image }),
+    };
+    
+    setPantryItems([...pantryItems, fullNewItem]);
+    setAddItemDialogOpen(false);
+    
+    // Reset new item form
+    setNewItem({
+      name: '',
+      quantity: 1,
+      unit: 'piece',
+      category: 'pantry',
+      addedDate: new Date().toISOString(),
+    });
+    
     toast({
-      title: "Add item feature",
-      description: "This would open a form to add a new pantry item",
+      title: "Item added",
+      description: `${fullNewItem.name} has been added to your pantry`,
       duration: 3000,
     });
   };
@@ -142,12 +208,46 @@ const PantryPage = () => {
     );
   };
 
+  const handleToggleSelectItem = (itemId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedItems(prev => [...prev, itemId]);
+    } else {
+      setSelectedItems(prev => prev.filter(id => id !== itemId));
+    }
+  };
+
   const handleSendToShopping = () => {
+    if (selectedItems.length === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please select items to add to your shopping list",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    // In a real app, this would add the items to the shopping list
+    // For now, we'll just simulate it
+    
+    // Get the names of the selected items for the toast message
+    const selectedItemNames = pantryItems
+      .filter(item => selectedItems.includes(item.id))
+      .map(item => item.name)
+      .join(", ");
+    
     toast({
       title: "Shopping List Updated",
-      description: "Selected items have been added to your shopping list",
+      description: `Added ${selectedItems.length} item(s) to your shopping list: ${selectedItemNames}`,
       duration: 3000,
     });
+    
+    // Clear the selection after adding to shopping list
+    setSelectedItems([]);
+    
+    // Simulate navigation to shopping list page after a short delay
+    setTimeout(() => {
+      navigate('/shopping-list');
+    }, 2000);
   };
   
   const filteredItems = searchQuery ? 
@@ -190,6 +290,7 @@ const PantryPage = () => {
                 <PantryActions 
                   onAddNew={handleAddNew} 
                   onSendToShopping={handleSendToShopping}
+                  selectedItems={selectedItems}
                 />
               </CardContent>
             </Card>
@@ -205,6 +306,8 @@ const PantryPage = () => {
                 onAddNew={handleAddNew}
                 customLists={customLists}
                 onAddToList={handleAddToList}
+                selectedItems={selectedItems}
+                onToggleSelectItem={handleToggleSelectItem}
               />
             </div>
             
@@ -221,6 +324,128 @@ const PantryPage = () => {
           </div>
         </div>
       </main>
+      
+      <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Pantry Item</DialogTitle>
+            <DialogDescription>
+              Enter the details of the item you want to add to your pantry.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                value={newItem.name || ''}
+                onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                className="col-span-3"
+                placeholder="e.g. Rice, Milk, Eggs"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="quantity" className="text-right">
+                Quantity
+              </Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={newItem.quantity || 1}
+                onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value) || 1})}
+                className="col-span-3"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="unit" className="text-right">
+                Unit
+              </Label>
+              <Select 
+                value={newItem.unit || 'piece'} 
+                onValueChange={(value) => setNewItem({...newItem, unit: value})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="piece">Piece</SelectItem>
+                  <SelectItem value="kg">Kilogram</SelectItem>
+                  <SelectItem value="g">Gram</SelectItem>
+                  <SelectItem value="l">Liter</SelectItem>
+                  <SelectItem value="ml">Milliliter</SelectItem>
+                  <SelectItem value="cup">Cup</SelectItem>
+                  <SelectItem value="tbsp">Tablespoon</SelectItem>
+                  <SelectItem value="tsp">Teaspoon</SelectItem>
+                  <SelectItem value="bottle">Bottle</SelectItem>
+                  <SelectItem value="can">Can</SelectItem>
+                  <SelectItem value="box">Box</SelectItem>
+                  <SelectItem value="package">Package</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category" className="text-right">
+                Category
+              </Label>
+              <Select 
+                value={newItem.category || 'pantry'} 
+                onValueChange={(value) => setNewItem({...newItem, category: value})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fridge">Fridge</SelectItem>
+                  <SelectItem value="freezer">Freezer</SelectItem>
+                  <SelectItem value="pantry">Pantry</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="expiry" className="text-right">
+                Expiry Date
+              </Label>
+              <Input
+                id="expiry"
+                type="date"
+                value={newItem.expiryDate || ''}
+                onChange={(e) => setNewItem({...newItem, expiryDate: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="image" className="text-right">
+                Image URL
+              </Label>
+              <Input
+                id="image"
+                value={newItem.image || ''}
+                onChange={(e) => setNewItem({...newItem, image: e.target.value})}
+                placeholder="https://example.com/image.jpg (optional)"
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddItemDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNewItem} className="bg-kitchen-green hover:bg-kitchen-green/90">
+              Add Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <Footer />
     </div>
