@@ -12,7 +12,7 @@ import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/Kitchen
 import RecipeGenerator from '@/components/recipes/RecipeGenerator';
 import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
 import { Button } from '@/components/ui/button';
-import { searchRecipesByIngredients, searchRecipesByCuisine } from '@/services/mealDbService';
+import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } from '@/services/mealDbService';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -33,6 +33,7 @@ const RecipesPage = () => {
   const [selectedStyle, setSelectedStyle] = useState<KitchenStyle>('All');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<GeneratedRecipe | null>(null);
   
   const handleCuisineSelect = async (cuisine: Cuisine) => {
     setSelectedCuisine(cuisine);
@@ -229,24 +230,46 @@ const RecipesPage = () => {
     }, 2000);
   };
   
-  const handleRecipeClick = (id: string) => {
-    const recipe = recipes.find(r => r.id === id);
-    
-    if (recipe) {
+  const handleRecipeClick = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const recipeDetails = await getRecipeDetails(id);
+      
+      if (recipeDetails) {
+        setSelectedRecipe({
+          id: recipeDetails.id,
+          title: recipeDetails.title,
+          cookTime: recipeDetails.cookTime,
+          ingredients: recipeDetails.ingredients,
+          measurements: recipeDetails.measurements,
+          steps: recipeDetails.steps,
+          tagline: recipeDetails.cuisine 
+            ? `Authentic ${recipeDetails.cuisine} cuisine` 
+            : 'Delicious recipe to try today!',
+          image: recipeDetails.image,
+          cuisine: recipeDetails.cuisine,
+          category: recipeDetails.category,
+          tags: recipeDetails.tags
+        });
+        
+        setShowGenerator(true);
+      } else {
+        toast({
+          title: "Recipe not found",
+          description: "Could not load recipe details",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching recipe details:', error);
       toast({
-        title: recipe.title,
-        description: "This would show the full recipe details",
-        duration: 3000,
+        title: "Error fetching recipe",
+        description: "Could not load recipe details",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-  };
-  
-  const handleFilterClick = () => {
-    toast({
-      title: "Recipe filters",
-      description: "This would open recipe filtering options",
-      duration: 3000,
-    });
   };
   
   const handleBack = () => {
@@ -257,11 +280,13 @@ const RecipesPage = () => {
     setShowGenerator(!showGenerator);
     if (!showGenerator) {
       setGeneratedRecipe(null);
+      setSelectedRecipe(null);
     }
   };
   
   const handleTryAnother = () => {
     setGeneratedRecipe(null);
+    setSelectedRecipe(null);
   };
   
   useEffect(() => {
@@ -312,7 +337,13 @@ const RecipesPage = () => {
         
         {showGenerator ? (
           <div>
-            {generatedRecipe ? (
+            {selectedRecipe ? (
+              <RecipeDetail 
+                recipe={selectedRecipe} 
+                onTryAnother={handleTryAnother}
+                kitchenStyle={selectedStyle}
+              />
+            ) : generatedRecipe ? (
               <RecipeDetail 
                 recipe={generatedRecipe} 
                 onTryAnother={handleTryAnother}

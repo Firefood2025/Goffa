@@ -1,13 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, ChefHat, Utensils, Share2, Copy, CheckCircle } from 'lucide-react';
+import { Clock, ChefHat, Utensils, Share2, Copy, CheckCircle, ShoppingCart, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { createClient } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 
 export interface GeneratedRecipe {
+  id?: string;
   title: string;
   cookTime: number;
   ingredients: string[];
+  measurements?: string[];
   steps: string[];
   nutrition?: {
     calories?: number;
@@ -16,6 +20,10 @@ export interface GeneratedRecipe {
     fat?: number;
   };
   tagline: string;
+  image?: string;
+  cuisine?: string;
+  category?: string;
+  tags?: string[];
 }
 
 interface RecipeDetailProps {
@@ -24,19 +32,65 @@ interface RecipeDetailProps {
   kitchenStyle: string;
 }
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
 const RecipeDetail: React.FC<RecipeDetailProps> = ({ 
   recipe, 
   onTryAnother,
   kitchenStyle
 }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [copying, setCopying] = useState(false);
+  const [pantryItems, setPantryItems] = useState<string[]>([]);
+  const [missingIngredients, setMissingIngredients] = useState<{ingredient: string, measurement?: string}[]>([]);
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchPantryItems = async () => {
+      try {
+        if (supabase) {
+          const { data } = await supabase
+            .from('pantry_items')
+            .select('name');
+          
+          if (data) {
+            const itemNames = data.map(item => item.name.toLowerCase());
+            setPantryItems(itemNames);
+            
+            // Identify missing ingredients
+            const missing = recipe.ingredients
+              .filter(ingredient => !itemNames.includes(ingredient.toLowerCase()))
+              .map((ingredient, index) => ({
+                ingredient,
+                measurement: recipe.measurements?.[index]
+              }));
+              
+            setMissingIngredients(missing);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching pantry items:', error);
+      }
+    };
+    
+    fetchPantryItems();
+  }, [recipe]);
 
   const createShareText = () => {
-    const ingredientsList = recipe.ingredients.map(i => `• ${i}`).join('\n');
+    const ingredientsList = recipe.ingredients.map((i, index) => {
+      const measurement = recipe.measurements?.[index] ? `${recipe.measurements[index]} ` : '';
+      return `• ${measurement}${i}`;
+    }).join('\n');
+    
     const stepsList = recipe.steps.map((s, i) => `${i+1}. ${s}`).join('\n');
     
-    return `🍽️ ${recipe.title} 🍽️\n\n${recipe.tagline}\n\nCooking Time: ${recipe.cookTime} min\nStyle: ${kitchenStyle}\n\n📋 INGREDIENTS:\n${ingredientsList}\n\n📝 INSTRUCTIONS:\n${stepsList}`;
+    return `🍽️ ${recipe.title} 🍽️\n\n${recipe.tagline}\n\nCooking Time: ${recipe.cookTime} min\nStyle: ${recipe.cuisine || kitchenStyle}\n\n📋 INGREDIENTS:\n${ingredientsList}\n\n📝 INSTRUCTIONS:\n${stepsList}`;
   };
 
   const handleShare = async () => {
@@ -85,12 +139,90 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
     }
   };
 
+  const toggleIngredient = (ingredient: string) => {
+    setSelectedIngredients(prev => 
+      prev.includes(ingredient)
+        ? prev.filter(item => item !== ingredient)
+        : [...prev, ingredient]
+    );
+  };
+
+  const addToShoppingList = async () => {
+    if (selectedIngredients.length === 0) {
+      toast({
+        title: "No ingredients selected",
+        description: "Please select ingredients to add to your shopping list",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (supabase) {
+        // Get current shopping list to avoid duplicates
+        const { data: existingItems } = await supabase
+          .from('shopping_list')
+          .select('name');
+        
+        const existingNames = existingItems?.map(item => item.name.toLowerCase()) || [];
+        
+        // Filter out any ingredients already in the shopping list
+        const newIngredients = selectedIngredients.filter(
+          ingredient => !existingNames.includes(ingredient.toLowerCase())
+        );
+        
+        if (newIngredients.length > 0) {
+          // Add new ingredients to shopping list
+          const { error } = await supabase
+            .from('shopping_list')
+            .insert(
+              newIngredients.map(ingredient => ({
+                name: ingredient,
+                category: 'Recipe Ingredients',
+                quantity: '1',
+                isChecked: false
+              }))
+            );
+          
+          if (error) throw error;
+          
+          toast({
+            title: "Added to shopping list",
+            description: `${newIngredients.length} ingredient${newIngredients.length > 1 ? 's' : ''} added to your shopping list`,
+          });
+          
+          // Navigate to shopping list page
+          navigate('/shopping-list');
+        } else {
+          toast({
+            title: "Ingredients already in list",
+            description: "All selected ingredients are already in your shopping list",
+          });
+        }
+      } else {
+        // Fallback for when Supabase is not available
+        toast({
+          title: "Added to shopping list",
+          description: `${selectedIngredients.length} ingredient${selectedIngredients.length > 1 ? 's' : ''} would be added to your shopping list`,
+        });
+        navigate('/shopping-list');
+      }
+    } catch (error) {
+      console.error('Error adding to shopping list:', error);
+      toast({
+        title: "Couldn't add to shopping list",
+        description: "There was an error adding ingredients to your shopping list",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6 animate-fade-in">
       <div className="p-6">
         <div className="mb-4 text-center">
           <h2 className="text-xl font-bold text-center text-kitchen-dark mb-1">
-            ✨ Voilà! Your custom recipe is ready!
+            ✨ Recipe Details
           </h2>
         </div>
         
@@ -98,12 +230,34 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
           <h1 className="text-2xl font-bold mb-2 text-kitchen-green">{recipe.title}</h1>
           <p className="text-gray-600 italic">{recipe.tagline}</p>
           
-          <div className="flex items-center text-sm text-gray-600 mt-3">
+          {recipe.image && (
+            <div className="my-4">
+              <img 
+                src={recipe.image} 
+                alt={recipe.title} 
+                className="w-full h-48 object-cover rounded-md"
+              />
+            </div>
+          )}
+          
+          <div className="flex flex-wrap items-center text-sm text-gray-600 mt-3">
             <Clock size={16} className="mr-1 text-kitchen-green" />
-            <span>{recipe.cookTime} min</span>
-            <span className="mx-2">•</span>
-            <ChefHat size={16} className="mr-1 text-kitchen-green" />
-            <span>{kitchenStyle} Style</span>
+            <span className="mr-2">{recipe.cookTime} min</span>
+            
+            {recipe.cuisine && (
+              <>
+                <span className="mx-1">•</span>
+                <ChefHat size={16} className="mr-1 ml-1 text-kitchen-green" />
+                <span className="mr-2">{recipe.cuisine} Cuisine</span>
+              </>
+            )}
+            
+            {recipe.category && (
+              <>
+                <span className="mx-1">•</span>
+                <span className="px-2 py-1 bg-muted text-xs rounded-full">{recipe.category}</span>
+              </>
+            )}
           </div>
         </div>
         
@@ -113,9 +267,20 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
             Ingredients
           </h3>
           <ul className="list-disc pl-5 space-y-1">
-            {recipe.ingredients.map((ingredient, index) => (
-              <li key={index} className="text-gray-700">{ingredient}</li>
-            ))}
+            {recipe.ingredients.map((ingredient, index) => {
+              const measurement = recipe.measurements?.[index] ? `${recipe.measurements[index]} ` : '';
+              const isInPantry = pantryItems.some(item => 
+                ingredient.toLowerCase().includes(item) || 
+                item.includes(ingredient.toLowerCase())
+              );
+              
+              return (
+                <li key={index} className={`${isInPantry ? 'text-gray-700' : 'text-orange-500 font-medium'}`}>
+                  {measurement}{ingredient}
+                  {!isInPantry && ' (not in pantry)'}
+                </li>
+              );
+            })}
           </ul>
         </div>
         
@@ -157,6 +322,42 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
                 </div>
               )}
             </div>
+          </div>
+        )}
+        
+        {missingIngredients.length > 0 && (
+          <div className="mb-6 p-4 border border-orange-200 bg-orange-50 rounded-lg">
+            <h3 className="text-sm font-semibold mb-2 flex items-center text-orange-700">
+              <ShoppingCart size={16} className="mr-2" />
+              Missing Ingredients
+            </h3>
+            
+            <ul className="space-y-2">
+              {missingIngredients.map((item, index) => (
+                <li key={index} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`missing-${index}`}
+                    checked={selectedIngredients.includes(item.ingredient)}
+                    onChange={() => toggleIngredient(item.ingredient)}
+                    className="mr-2 h-4 w-4 rounded border-gray-300 text-kitchen-green focus:ring-kitchen-green"
+                  />
+                  <label htmlFor={`missing-${index}`} className="text-sm">
+                    {item.measurement ? `${item.measurement} ` : ''}{item.ingredient}
+                  </label>
+                </li>
+              ))}
+            </ul>
+            
+            <Button
+              onClick={addToShoppingList}
+              disabled={selectedIngredients.length === 0}
+              className="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white"
+              size="sm"
+            >
+              <Plus size={16} className="mr-1" />
+              Add Selected to Shopping List
+            </Button>
           </div>
         )}
         

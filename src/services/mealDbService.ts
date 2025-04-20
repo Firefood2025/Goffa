@@ -8,6 +8,7 @@ interface MealDBResponse {
     strArea?: string;
     strInstructions?: string;
     strTags?: string;
+    [key: string]: string | undefined;
   }> | null;
 }
 
@@ -17,10 +18,13 @@ interface DetailedMeal {
   image: string;
   cookTime: number;
   ingredients: string[];
+  measurements: string[];
   steps: string[];
   cuisine?: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   matchingIngredients: number;
+  category?: string;
+  tags?: string[];
 }
 
 const BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
@@ -56,17 +60,24 @@ export const getRecipeDetails = async (id: string): Promise<DetailedMeal | null>
 
     const meal = data.meals[0];
     const ingredients: string[] = [];
+    const measurements: string[] = [];
 
-    // Extract ingredients from the API response
+    // Extract ingredients and measurements from the API response
     for (let i = 1; i <= 20; i++) {
       const ingredient = meal[`strIngredient${i}` as keyof typeof meal];
+      const measure = meal[`strMeasure${i}` as keyof typeof meal];
+      
       if (ingredient && typeof ingredient === 'string' && ingredient.trim()) {
         ingredients.push(ingredient.trim());
+        measurements.push(measure?.trim() || '');
       }
     }
 
     // Convert instructions into steps array
-    const steps = meal.strInstructions?.split('\n').filter(step => step.trim()) || [];
+    const steps = meal.strInstructions?.split(/\r\n|\r|\n/).filter(step => step.trim()) || [];
+
+    // Extract tags if available
+    const tags = meal.strTags?.split(',').map(tag => tag.trim()) || [];
 
     return {
       id: meal.idMeal,
@@ -74,8 +85,11 @@ export const getRecipeDetails = async (id: string): Promise<DetailedMeal | null>
       image: meal.strMealThumb,
       cookTime: Math.floor(Math.random() * 30) + 20, // Random time since API doesn't provide this
       ingredients,
+      measurements,
       steps,
       cuisine: meal.strArea,
+      category: meal.strCategory,
+      tags,
       difficulty: 'Medium', // Default since API doesn't provide this
       matchingIngredients: 1 // Will be calculated based on user's pantry
     };
