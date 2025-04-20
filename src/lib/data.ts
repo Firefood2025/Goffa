@@ -11,7 +11,8 @@ export const mockPantryItems: PantryItemData[] = [
     unit: 'pcs',
     category: 'fridge',
     expiryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
-    addedDate: new Date().toISOString()
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800&auto=format&fit=crop'
   },
   {
     id: '2',
@@ -19,7 +20,8 @@ export const mockPantryItems: PantryItemData[] = [
     quantity: 1,
     unit: 'pkg',
     category: 'pantry',
-    addedDate: new Date().toISOString()
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1551462147-37885acc36f1?w=800&auto=format&fit=crop'
   },
   {
     id: '3',
@@ -28,7 +30,8 @@ export const mockPantryItems: PantryItemData[] = [
     unit: 'pcs',
     category: 'fridge',
     expiryDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days from now
-    addedDate: new Date().toISOString()
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1561136594-7f68413baa99?w=800&auto=format&fit=crop'
   },
   {
     id: '4',
@@ -36,7 +39,8 @@ export const mockPantryItems: PantryItemData[] = [
     quantity: 1,
     unit: 'bag',
     category: 'freezer',
-    addedDate: new Date().toISOString()
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1656949346309-ea99f30c1b58?w=800&auto=format&fit=crop'
   },
   {
     id: '5',
@@ -45,7 +49,8 @@ export const mockPantryItems: PantryItemData[] = [
     unit: 'L',
     category: 'fridge',
     expiryDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(), // 6 days from now
-    addedDate: new Date().toISOString()
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=800&auto=format&fit=crop'
   },
   {
     id: '6',
@@ -54,7 +59,8 @@ export const mockPantryItems: PantryItemData[] = [
     unit: 'loaf',
     category: 'pantry',
     expiryDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
-    addedDate: new Date().toISOString()
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?w=800&auto=format&fit=crop'
   },
   {
     id: '7',
@@ -63,7 +69,73 @@ export const mockPantryItems: PantryItemData[] = [
     unit: 'pcs',
     category: 'fridge',
     expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now
-    addedDate: new Date().toISOString()
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=800&auto=format&fit=crop'
+  },
+  {
+    id: '8',
+    name: 'Bell Peppers',
+    quantity: 3,
+    unit: 'pcs',
+    category: 'fridge',
+    expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1594292312128-5d1d8d3fab56?w=800&auto=format&fit=crop'
+  },
+  {
+    id: '9',
+    name: 'Frozen Berries',
+    quantity: 1,
+    unit: 'bag',
+    category: 'freezer',
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1463489995677-c1d9f65c332a?w=800&auto=format&fit=crop'
+  },
+  {
+    id: '10',
+    name: 'Rice',
+    quantity: 2,
+    unit: 'kg',
+    category: 'pantry',
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1594489573188-e588f387a782?w=800&auto=format&fit=crop'
+  },
+  {
+    id: '11',
+    name: 'Canned Beans',
+    quantity: 3,
+    unit: 'cans',
+    category: 'pantry',
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1612187279149-41671afde701?w=800&auto=format&fit=crop'
+  },
+  {
+    id: '12',
+    name: 'Spinach',
+    quantity: 1,
+    unit: 'bag',
+    category: 'fridge',
+    expiryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&auto=format&fit=crop'
+  },
+  {
+    id: '13',
+    name: 'Frozen Pizza',
+    quantity: 2,
+    unit: 'pcs',
+    category: 'freezer',
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop'
+  },
+  {
+    id: '14',
+    name: 'Olive Oil',
+    quantity: 1,
+    unit: 'bottle',
+    category: 'pantry',
+    addedDate: new Date().toISOString(),
+    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&auto=format&fit=crop'
   }
 ];
 
