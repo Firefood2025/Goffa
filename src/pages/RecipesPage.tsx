@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +35,17 @@ const RecipesPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<GeneratedRecipe | null>(null);
+  
+  // Add the handleFilterClick function that was missing
+  const handleFilterClick = () => {
+    // This function should handle filtering recipes
+    // For now, let's just show a toast message
+    toast({
+      title: "Filter Options",
+      description: "Recipe filtering options would appear here",
+      duration: 3000,
+    });
+  };
   
   const handleCuisineSelect = async (cuisine: Cuisine) => {
     setSelectedCuisine(cuisine);
