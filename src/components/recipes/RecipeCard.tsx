@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, Utensils, ChefHat } from 'lucide-react';
+import { Clock, Utensils, ChefHat, Heart, Trash2 } from 'lucide-react';
 
 export interface RecipeData {
   id: string;
@@ -16,9 +16,18 @@ export interface RecipeData {
 interface RecipeCardProps {
   recipe: RecipeData;
   onClick: (id: string) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ 
+  recipe, 
+  onClick, 
+  isFavorite = false,
+  onToggleFavorite,
+  onDelete
+}) => {
   // Calculate match percentage
   const matchPercentage = Math.round((recipe.matchingIngredients / recipe.ingredients.length) * 100);
   
@@ -37,20 +46,65 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
   
   const matchStyle = getMatchStyling();
   
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      onToggleFavorite(recipe.id);
+    }
+  };
+  
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(recipe.id);
+    }
+  };
+  
   return (
-    <div 
-      onClick={() => onClick(recipe.id)}
-      className="bg-white rounded-xl shadow-md overflow-hidden mb-4 cursor-pointer hover:shadow-lg transition-shadow"
-    >
-      <div className="relative">
+    <div className="bg-white rounded-xl shadow-md overflow-hidden mb-4 hover:shadow-lg transition-shadow">
+      <div 
+        className="relative cursor-pointer" 
+        onClick={() => onClick(recipe.id)}
+      >
         <img 
-          src={recipe.image} 
+          src={recipe.image || `https://source.unsplash.com/random/800x600/?food,${recipe.title.toLowerCase().replace(/\s+/g, ',')}`} 
           alt={recipe.title}
           className="w-full h-48 object-cover"
+          onError={(e) => {
+            // Fallback image if the main one fails to load
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = `https://source.unsplash.com/random/800x600/?food,${recipe.title.toLowerCase().replace(/\s+/g, ',')}`;
+          }}
         />
         <div className={`absolute top-3 right-3 ${matchStyle.bg} ${matchStyle.text} text-xs font-bold px-2 py-1 rounded-full`}>
           {matchPercentage}% Match
         </div>
+        
+        {onToggleFavorite && (
+          <button
+            onClick={handleFavoriteClick}
+            className={`absolute top-3 left-3 p-2 rounded-full ${
+              isFavorite ? 'bg-red-500 text-white' : 'bg-white text-gray-500'
+            } hover:scale-110 transition-transform`}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart 
+              size={16} 
+              className={isFavorite ? 'fill-current' : ''} 
+            />
+          </button>
+        )}
+        
+        {onDelete && (
+          <button
+            onClick={handleDeleteClick}
+            className="absolute bottom-3 right-3 p-2 rounded-full bg-white text-gray-500 hover:bg-red-100 hover:text-red-500 transition-colors"
+            aria-label="Delete recipe"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
       
       <div className="p-4">

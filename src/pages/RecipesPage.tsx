@@ -8,12 +8,14 @@ import Footer from '@/components/layout/Footer';
 import RecipeList from '@/components/recipes/RecipeList';
 import CuisineSelector, { Cuisine } from '@/components/recipes/CuisineSelector';
 import { RecipeData } from '@/components/recipes/RecipeCard';
-import { mockRecipes } from '@/lib/data';
 import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/KitchenStyleSelector';
 import RecipeGenerator from '@/components/recipes/RecipeGenerator';
 import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
 import { Button } from '@/components/ui/button';
 import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } from '@/services/mealDbService';
+import OnboardingSteps from '@/components/recipes/OnboardingSteps';
+import LoadingAnimation from '@/components/recipes/LoadingAnimation';
+import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -27,8 +29,9 @@ const RecipesPage = () => {
   const { toast } = useToast();
   
   const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>('All');
-  const [recipes, setRecipes] = useState<RecipeData[]>(mockRecipes);
-  const [isLoading, setIsLoading] = useState(false);
+  const [recipes, setRecipes] = useState<RecipeData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [favoriteRecipes, setFavoriteRecipes] = useState<string[]>([]);
   
   const [showGenerator, setShowGenerator] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<KitchenStyle>('All');
@@ -36,10 +39,29 @@ const RecipesPage = () => {
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<GeneratedRecipe | null>(null);
   
-  // Add the handleFilterClick function that was missing
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [firstTimeVisit, setFirstTimeVisit] = useState(true);
+
+  useEffect(() => {
+    // Check if this is the first visit
+    const hasVisitedBefore = localStorage.getItem('hasVisitedRecipesPage');
+    if (!hasVisitedBefore) {
+      setShowOnboarding(true);
+      localStorage.setItem('hasVisitedRecipesPage', 'true');
+    } else {
+      setFirstTimeVisit(false);
+    }
+    
+    // Load favorite recipes from localStorage
+    const storedFavorites = localStorage.getItem('favoriteRecipes');
+    if (storedFavorites) {
+      setFavoriteRecipes(JSON.parse(storedFavorites));
+    }
+  }, []);
+  
   const handleFilterClick = () => {
-    // This function should handle filtering recipes
-    // For now, let's just show a toast message
     toast({
       title: "Filter Options",
       description: "Recipe filtering options would appear here",
@@ -62,10 +84,9 @@ const RecipesPage = () => {
       }
     } catch (error) {
       console.error('Error fetching recipes:', error);
-      setRecipes(mockRecipes);
       toast({
         title: "Couldn't fetch recipes",
-        description: "Using sample recipes instead",
+        description: "Please try again later",
         variant: "destructive",
       });
     } finally {
@@ -92,32 +113,21 @@ const RecipesPage = () => {
 
       const ingredients = pantryItems?.map(item => item.name) || [];
       
-      if (supabaseUrl) {
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseAnonKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ingredients }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to get recipe suggestions');
-        }
-
-        const data = await response.json();
-        const aiRecipes = data.recipes.map((recipe: any, index: number) => ({
-          ...recipe,
-          id: `ai-${index}`,
-          image: `https://source.unsplash.com/random/800x600/?${recipe.title.toLowerCase().replace(/\s+/g, ',')}`,
-          matchingIngredients: ingredients.length
-        }));
-
-        setRecipes(aiRecipes);
+      if (ingredients.length === 0) {
+        throw new Error('No pantry items found. Please add some ingredients to your pantry first.');
+      }
+      
+      const apiRecipes = await searchRecipesByIngredients(ingredients);
+      
+      if (apiRecipes.length === 0) {
+        toast({
+          title: "No recipes found",
+          description: "Try adding more ingredients to your pantry",
+          variant: "destructive",
+          duration: 3000,
+        });
+      } else {
+        setRecipes(apiRecipes);
         toast({
           title: "AI Suggestions Ready",
           description: "Based on your pantry items",
@@ -128,11 +138,10 @@ const RecipesPage = () => {
       console.error('Error getting AI suggestions:', error);
       toast({
         title: "Couldn't get suggestions",
-        description: "Please try again later",
+        description: error instanceof Error ? error.message : "Please try again later",
         variant: "destructive",
         duration: 3000,
       });
-      setRecipes(mockRecipes);
     } finally {
       setIsLoading(false);
     }
@@ -145,6 +154,48 @@ const RecipesPage = () => {
         throw new Error('Supabase client is not initialized');
       }
       
+      // First try to find a recipe by ingredients from the API
+      const apiRecipes = await searchRecipesByIngredients(ingredients);
+      
+      if (apiRecipes.length > 0) {
+        // Randomly select one of the recipes
+        const randomIndex = Math.floor(Math.random() * apiRecipes.length);
+        const selectedApiRecipe = apiRecipes[randomIndex];
+        
+        // Get full recipe details
+        const recipeDetails = await getRecipeDetails(selectedApiRecipe.id);
+        
+        if (recipeDetails) {
+          setGeneratedRecipe({
+            id: recipeDetails.id,
+            title: recipeDetails.title,
+            cookTime: recipeDetails.cookTime,
+            ingredients: recipeDetails.ingredients,
+            measurements: recipeDetails.measurements,
+            steps: recipeDetails.steps,
+            image: recipeDetails.image,
+            cuisine: recipeDetails.cuisine,
+            category: recipeDetails.category,
+            tags: recipeDetails.tags,
+            nutrition: {
+              calories: Math.floor(Math.random() * 400) + 200,
+              protein: Math.floor(Math.random() * 20) + 10,
+              carbs: Math.floor(Math.random() * 30) + 20,
+              fat: Math.floor(Math.random() * 15) + 5
+            },
+            tagline: `A delicious ${recipeDetails.cuisine || selectedStyle} recipe with your selected ingredients!`
+          });
+          
+          toast({
+            title: "Recipe Created!",
+            description: "Your custom recipe is ready",
+            duration: 3000,
+          });
+          return;
+        }
+      }
+      
+      // If API recipes aren't found or details couldn't be fetched, fall back to AI generation
       if (supabaseUrl) {
         const response = await fetch(
           `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
@@ -301,6 +352,45 @@ const RecipesPage = () => {
     setSelectedRecipe(null);
   };
   
+  const toggleFavorite = (recipeId: string) => {
+    let updatedFavorites;
+    if (favoriteRecipes.includes(recipeId)) {
+      updatedFavorites = favoriteRecipes.filter(id => id !== recipeId);
+    } else {
+      updatedFavorites = [...favoriteRecipes, recipeId];
+    }
+    setFavoriteRecipes(updatedFavorites);
+    localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
+    
+    toast({
+      title: favoriteRecipes.includes(recipeId) ? "Removed from favorites" : "Added to favorites",
+      description: favoriteRecipes.includes(recipeId) 
+        ? "Recipe removed from your favorites" 
+        : "Recipe added to your favorites",
+      duration: 2000,
+    });
+  };
+  
+  const deleteRecipe = (recipeId: string) => {
+    setRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
+    
+    // If it was a favorite, remove from favorites too
+    if (favoriteRecipes.includes(recipeId)) {
+      toggleFavorite(recipeId);
+    }
+    
+    toast({
+      title: "Recipe deleted",
+      description: "Recipe has been removed from your list",
+      duration: 2000,
+    });
+  };
+  
+  const completeOnboarding = () => {
+    setShowOnboarding(false);
+    setFirstTimeVisit(false);
+  };
+  
   useEffect(() => {
     const fetchInitialRecipes = async () => {
       setIsLoading(true);
@@ -315,11 +405,24 @@ const RecipesPage = () => {
           const apiRecipes = await searchRecipesByIngredients(ingredients);
           setRecipes(apiRecipes);
         } else {
-          setRecipes(mockRecipes);
+          // Fetch some default recipes if no pantry items are available
+          const defaultRecipes = await searchRecipesByCuisine('Italian');
+          setRecipes(defaultRecipes);
         }
       } catch (error) {
         console.error('Error fetching initial recipes:', error);
-        setRecipes(mockRecipes);
+        // Fetch some default recipes as fallback
+        try {
+          const defaultRecipes = await searchRecipesByCuisine('Italian');
+          setRecipes(defaultRecipes);
+        } catch (fallbackError) {
+          console.error('Error fetching fallback recipes:', fallbackError);
+          toast({
+            title: "Couldn't load recipes",
+            description: "Please check your internet connection and try again",
+            variant: "destructive",
+          });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -327,6 +430,28 @@ const RecipesPage = () => {
 
     fetchInitialRecipes();
   }, []);
+  
+  // Show onboarding if it's the first visit
+  if (showOnboarding) {
+    return (
+      <div className="min-h-screen bg-kitchen-cream flex flex-col">
+        <Header 
+          title="Welcome to Recipe Ideas" 
+          showSettings={false} 
+          showBack={true} 
+          onBack={handleBack} 
+        />
+        
+        <OnboardingSteps 
+          currentStep={onboardingStep} 
+          setCurrentStep={setOnboardingStep}
+          completeOnboarding={completeOnboarding}
+        />
+        
+        <Footer />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-kitchen-cream flex flex-col">
@@ -345,6 +470,16 @@ const RecipesPage = () => {
           >
             {showGenerator ? "Browse Recipe Ideas" : "Create Custom Recipe"}
           </Button>
+          
+          {!showGenerator && (
+            <Button
+              onClick={getAiSuggestions}
+              className="w-full bg-kitchen-green/90 hover:bg-kitchen-green mb-2"
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading suggestions..." : "Get AI Suggestions"}
+            </Button>
+          )}
         </div>
         
         {showGenerator ? (
@@ -354,12 +489,16 @@ const RecipesPage = () => {
                 recipe={selectedRecipe} 
                 onTryAnother={handleTryAnother}
                 kitchenStyle={selectedStyle}
+                isFavorite={selectedRecipe.id ? favoriteRecipes.includes(selectedRecipe.id) : false}
+                onToggleFavorite={() => selectedRecipe.id && toggleFavorite(selectedRecipe.id)}
               />
             ) : generatedRecipe ? (
               <RecipeDetail 
                 recipe={generatedRecipe} 
                 onTryAnother={handleTryAnother}
                 kitchenStyle={selectedStyle}
+                isFavorite={generatedRecipe.id ? favoriteRecipes.includes(generatedRecipe.id) : false}
+                onToggleFavorite={() => generatedRecipe.id && toggleFavorite(generatedRecipe.id)}
               />
             ) : (
               <>
@@ -377,16 +516,33 @@ const RecipesPage = () => {
           </div>
         ) : (
           <>
+            {!isLoading && recipes.length > 0 && (
+              <FavoriteRecipesManager 
+                favoriteRecipes={favoriteRecipes}
+                recipes={recipes}
+                onViewRecipe={handleRecipeClick}
+                onRemoveFavorite={toggleFavorite}
+              />
+            )}
+            
             <CuisineSelector 
               selectedCuisine={selectedCuisine}
               onSelect={handleCuisineSelect}
             />
-            <RecipeList
-              recipes={recipes}
-              onRecipeClick={handleRecipeClick}
-              onFilterClick={handleFilterClick}
-              isLoading={isLoading}
-            />
+            
+            {isLoading ? (
+              <LoadingAnimation />
+            ) : (
+              <RecipeList
+                recipes={recipes}
+                onRecipeClick={handleRecipeClick}
+                onFilterClick={handleFilterClick}
+                favoriteRecipes={favoriteRecipes}
+                onToggleFavorite={toggleFavorite}
+                onDeleteRecipe={deleteRecipe}
+                isLoading={false}
+              />
+            )}
           </>
         )}
       </main>

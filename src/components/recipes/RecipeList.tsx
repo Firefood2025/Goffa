@@ -9,13 +9,19 @@ interface RecipeListProps {
   onRecipeClick: (id: string) => void;
   onFilterClick: () => void;
   isLoading?: boolean;
+  favoriteRecipes?: string[];
+  onToggleFavorite?: (id: string) => void;
+  onDeleteRecipe?: (id: string) => void;
 }
 
 const RecipeList: React.FC<RecipeListProps> = ({ 
   recipes, 
   onRecipeClick,
   onFilterClick,
-  isLoading = false
+  isLoading = false,
+  favoriteRecipes = [],
+  onToggleFavorite,
+  onDeleteRecipe
 }) => {
   if (isLoading) {
     return (
@@ -52,6 +58,9 @@ const RecipeList: React.FC<RecipeListProps> = ({
             key={recipe.id}
             recipe={recipe}
             onClick={onRecipeClick}
+            isFavorite={favoriteRecipes?.includes(recipe.id)}
+            onToggleFavorite={onToggleFavorite}
+            onDelete={onDeleteRecipe}
           />
         ))
       )}

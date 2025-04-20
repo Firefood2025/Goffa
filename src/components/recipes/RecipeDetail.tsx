@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, ChefHat, Utensils, Share2, Copy, CheckCircle, ShoppingCart, Plus } from 'lucide-react';
+import { Clock, ChefHat, Utensils, Share2, Copy, CheckCircle, ShoppingCart, Plus, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +30,8 @@ interface RecipeDetailProps {
   recipe: GeneratedRecipe;
   onTryAnother: () => void;
   kitchenStyle: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -42,7 +44,9 @@ const supabase = supabaseUrl && supabaseAnonKey
 const RecipeDetail: React.FC<RecipeDetailProps> = ({ 
   recipe, 
   onTryAnother,
-  kitchenStyle
+  kitchenStyle,
+  isFavorite = false,
+  onToggleFavorite
 }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -226,9 +230,21 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
           </h2>
         </div>
         
-        <div className="mb-6">
+        <div className="mb-6 relative">
           <h1 className="text-2xl font-bold mb-2 text-kitchen-green">{recipe.title}</h1>
           <p className="text-gray-600 italic">{recipe.tagline}</p>
+          
+          {onToggleFavorite && (
+            <button
+              onClick={onToggleFavorite}
+              className={`absolute top-0 right-0 p-2 rounded-full ${
+                isFavorite ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-500'
+              } hover:scale-110 transition-transform`}
+              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart size={20} className={isFavorite ? 'fill-current' : ''} />
+            </button>
+          )}
           
           {recipe.image && (
             <div className="my-4">
@@ -236,6 +252,12 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
                 src={recipe.image} 
                 alt={recipe.title} 
                 className="w-full h-48 object-cover rounded-md"
+                onError={(e) => {
+                  // Fallback image if the main one fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = `https://source.unsplash.com/random/800x600/?food,${recipe.title.toLowerCase().replace(/\s+/g, ',')}`;
+                }}
               />
             </div>
           )}
