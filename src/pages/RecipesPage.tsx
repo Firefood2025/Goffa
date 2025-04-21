@@ -16,6 +16,7 @@ import OnboardingSteps from '@/components/recipes/OnboardingSteps';
 import LoadingAnimation from '@/components/recipes/LoadingAnimation';
 import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
 import AiLoadingAnimation from '@/components/recipes/AiLoadingAnimation';
+import { Utensils } from 'lucide-react';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -49,6 +50,7 @@ const RecipesPage = () => {
   
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [firstTimeVisit, setFirstTimeVisit] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const onboardingSteps = [
     {
