@@ -463,7 +463,7 @@ const RecipesPage = () => {
             onClick={handleToggleGenerator}
             className="w-full bg-kitchen-green hover:bg-kitchen-green/90 mb-4"
           >
-            {showGenerator ? "Browse Recipe Ideas" : "Create Custom Recipe"}
+            {showGenerator ? "Browse Recipe Ideas" : "Inspirations"}
           </Button>
           {!showGenerator && (
             <Button
@@ -471,7 +471,7 @@ const RecipesPage = () => {
               className="w-full bg-kitchen-green/90 hover:bg-kitchen-green mb-2"
               disabled={isLoading}
             >
-              {isLoading ? <span className="flex items-center"><Utensils className="animate-spin mr-2" size={18}/> Loading suggestions...</span> : "Get AI Suggestions"}
+              {isLoading ? <span className="flex items-center"><Utensils className="animate-spin mr-2" size={18} /> Loading suggestions...</span> : "Get AI Suggestions"}
             </Button>
           )}
         </div>
