@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -16,8 +15,8 @@ import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } 
 import OnboardingSteps from '@/components/recipes/OnboardingSteps';
 import LoadingAnimation from '@/components/recipes/LoadingAnimation';
 import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
+import AiLoadingAnimation from '@/components/recipes/AiLoadingAnimation';
 
-// Initialize Supabase client (if environment variables exist)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -48,13 +47,50 @@ const RecipesPage = () => {
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<GeneratedRecipe | null>(null);
   
-  // Onboarding state
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [firstTimeVisit, setFirstTimeVisit] = useState(true);
 
+  const onboardingSteps = [
+    {
+      title: "Choose Kitchen Style",
+      description: "Pick a style that inspires your recipes.",
+      content: (
+        <KitchenStyleSelector
+          selectedStyle={selectedStyle}
+          onSelect={style => {
+            setSelectedStyle(style);
+            setOnboardingStep(1);
+          }}
+        />
+      ),
+    },
+    {
+      title: "Scan Pantry Items",
+      description: "Import and confirm your pantry items for personalized recipe matches.",
+      content: (
+        <Button 
+          onClick={() => setOnboardingStep(2)}
+          className="bg-kitchen-green w-full"
+        >
+          Continue with Pantry Import
+        </Button>
+      ),
+    },
+    {
+      title: "Get Recipe Suggestions",
+      description: "Let AI (or your pantry) suggest delicious recipes customized for you.",
+      content: (
+        <Button
+          onClick={() => setShowOnboarding(false)}
+          className="bg-kitchen-green w-full"
+        >
+          Finish & View Recipes
+        </Button>
+      ),
+    },
+  ];
+
   useEffect(() => {
-    // Check if this is the first visit
     const hasVisitedBefore = localStorage.getItem('hasVisitedRecipesPage');
     if (!hasVisitedBefore) {
       setShowOnboarding(true);
@@ -63,7 +99,6 @@ const RecipesPage = () => {
       setFirstTimeVisit(false);
     }
     
-    // Load favorite recipes from localStorage
     const storedFavorites = localStorage.getItem('favoriteRecipes');
     if (storedFavorites) {
       setFavoriteRecipes(JSON.parse(storedFavorites));
@@ -83,9 +118,7 @@ const RecipesPage = () => {
     setIsLoading(true);
     try {
       if (cuisine === 'All') {
-        // Get pantry items if Supabase is initialized
-        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice']; // Default ingredients
-        
+        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice'];
         if (supabase) {
           try {
             const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
@@ -96,7 +129,6 @@ const RecipesPage = () => {
             console.error("Error fetching pantry items:", error);
           }
         }
-        
         const apiRecipes = await searchRecipesByIngredients(ingredients);
         setRecipes(apiRecipes);
       } else {
@@ -123,9 +155,7 @@ const RecipesPage = () => {
   const getAiSuggestions = async () => {
     setIsLoading(true);
     try {
-      // Get ingredients from pantry or use defaults
-      let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice']; // Default ingredients
-      
+      let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice'];
       if (supabase) {
         try {
           const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
@@ -134,33 +164,19 @@ const RecipesPage = () => {
           }
         } catch (error) {
           console.error("Error fetching pantry items:", error);
-          // Continue with default ingredients
         }
       }
-      
-      // Use the MealDB API to get recipes based on ingredients
       const apiRecipes = await searchRecipesByIngredients(ingredients);
-      
-      if (apiRecipes.length === 0) {
-        toast({
-          title: "No recipes found",
-          description: "Try adding more ingredients to your pantry or try different ingredients",
-          variant: "destructive",
-          duration: 3000,
-        });
-      } else {
-        setRecipes(apiRecipes);
-        toast({
-          title: "Recipes Found",
-          description: `Found ${apiRecipes.length} recipe${apiRecipes.length > 1 ? 's' : ''} based on your ingredients`,
-          duration: 3000,
-        });
-      }
+      setRecipes(apiRecipes);
+      toast({
+        title: "Recipes Found",
+        description: `Found ${apiRecipes.length} recipe${apiRecipes.length > 1 ? "s" : ""} based on your ingredients`,
+        duration: 3000,
+      });
     } catch (error) {
-      console.error('Error getting recipes:', error);
       toast({
         title: "Couldn't get suggestions",
-        description: "Please try again later",
+        description: "Please try again later.",
         variant: "destructive",
         duration: 3000,
       });
@@ -172,17 +188,11 @@ const RecipesPage = () => {
   const generateRecipe = async (ingredients: string[]) => {
     setIsGenerating(true);
     try {
-      // First try to find a recipe by ingredients from the API
       const apiRecipes = await searchRecipesByIngredients(ingredients);
-      
       if (apiRecipes.length > 0) {
-        // Randomly select one of the recipes
-        const randomIndex = Math.floor(Math.random() * apiRecipes.length);
-        const selectedApiRecipe = apiRecipes[randomIndex];
-        
-        // Get full recipe details
+        const idx = Math.floor(Math.random() * apiRecipes.length);
+        const selectedApiRecipe = apiRecipes[idx];
         const recipeDetails = await getRecipeDetails(selectedApiRecipe.id);
-        
         if (recipeDetails) {
           setGeneratedRecipe({
             id: recipeDetails.id,
@@ -199,11 +209,10 @@ const RecipesPage = () => {
               calories: Math.floor(Math.random() * 400) + 200,
               protein: Math.floor(Math.random() * 20) + 10,
               carbs: Math.floor(Math.random() * 30) + 20,
-              fat: Math.floor(Math.random() * 15) + 5
+              fat: Math.floor(Math.random() * 15) + 5,
             },
-            tagline: `A delicious ${recipeDetails.cuisine || selectedStyle} recipe with your selected ingredients!`
+            tagline: `A delicious ${recipeDetails.cuisine || selectedStyle} recipe with your selected ingredients!`,
           });
-          
           toast({
             title: "Recipe Created!",
             description: "Your custom recipe is ready",
@@ -212,108 +221,59 @@ const RecipesPage = () => {
           return;
         }
       }
-      
-      // If API recipes aren't found or details couldn't be fetched, fall back to AI generation
       if (supabaseUrl) {
-        try {
-          const response = await fetch(
-            `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${supabaseAnonKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                ingredients, 
-                cuisine: selectedStyle === 'All' ? undefined : selectedStyle,
-                detailed: true 
-              }),
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error('Failed to generate recipe. Server response: ' + response.status);
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${supabaseAnonKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ingredients,
+              cuisine: selectedStyle === "All" ? undefined : selectedStyle,
+              detailed: true,
+            }),
           }
-
+        );
+        if (response.ok) {
           const data = await response.json();
           if (data.recipes && data.recipes.length > 0) {
             const recipe = data.recipes[0];
             setGeneratedRecipe({
               id: recipe.id,
               title: recipe.title,
-              cookTime: recipe.cookTime || Math.floor(Math.random() * 30) + 20,
-              ingredients: recipe.ingredients || ingredients,
-              steps: recipe.steps || ['Mix all ingredients together', 'Cook until done'],
+              cookTime: recipe.cookTime,
+              ingredients: recipe.ingredients,
+              steps: recipe.steps,
               image: recipe.image,
-              nutrition: recipe.nutrition || {
-                calories: Math.floor(Math.random() * 400) + 200,
-                protein: Math.floor(Math.random() * 20) + 10,
-                carbs: Math.floor(Math.random() * 30) + 20,
-                fat: Math.floor(Math.random() * 15) + 5
-              },
-              tagline: recipe.tagline || `Inspired by your pantry and ${selectedStyle} vibe!`
+              nutrition: recipe.nutrition,
+              tagline: recipe.tagline,
             });
-            
             toast({
-              title: "Recipe Created!",
+              title: "AI Recipe Created!",
               description: "Your custom recipe is ready",
               duration: 3000,
             });
             return;
           }
-        } catch (error) {
-          console.error('Error from Supabase function:', error);
-          // Fall back to simulation
         }
       }
-      
-      // Fallback: simulate recipe generation with the ingredients provided
-      simulateRecipeGeneration(ingredients);
+      toast({
+        title: "No recipe found",
+        description: "Couldn't generate a recipe. Try more ingredients.",
+        variant: "destructive",
+      });
     } catch (error) {
-      console.error('Error generating recipe:', error);
-      simulateRecipeGeneration(ingredients);
+      toast({
+        title: "Error generating recipe",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
-  };
-  
-  const simulateRecipeGeneration = (ingredients: string[]) => {
-    setTimeout(() => {
-      const styleName = selectedStyle === 'All' ? 'Fusion' : selectedStyle;
-      
-      setGeneratedRecipe({
-        title: `${styleName} ${ingredients[0]} Delight`,
-        cookTime: Math.floor(Math.random() * 30) + 20,
-        ingredients: [
-          ...ingredients, 
-          'Salt and pepper to taste',
-          'Olive oil',
-          'Fresh herbs'
-        ],
-        steps: [
-          `Prepare all ${ingredients.join(', ')} ingredients.`,
-          'Heat olive oil in a pan over medium heat.',
-          `Add ${ingredients[0]} and cook for 5 minutes.`,
-          `Combine with ${ingredients.slice(1).join(', ')}.`,
-          'Season with salt and pepper to taste.',
-          'Cook until done and serve hot.'
-        ],
-        nutrition: {
-          calories: Math.floor(Math.random() * 400) + 200,
-          protein: Math.floor(Math.random() * 20) + 10,
-          carbs: Math.floor(Math.random() * 30) + 20,
-          fat: Math.floor(Math.random() * 15) + 5
-        },
-        tagline: `Inspired by your pantry and ${styleName} vibe!`
-      });
-      
-      toast({
-        title: "Recipe Created!",
-        description: "Your custom recipe is ready",
-        duration: 3000,
-      });
-    }, 2000);
   };
   
   const handleRecipeClick = async (id: string) => {
@@ -397,7 +357,6 @@ const RecipesPage = () => {
   const deleteRecipe = (recipeId: string) => {
     setRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
     
-    // If it was a favorite, remove from favorites too
     if (favoriteRecipes.includes(recipeId)) {
       toggleFavorite(recipeId);
     }
@@ -418,8 +377,7 @@ const RecipesPage = () => {
     const fetchInitialRecipes = async () => {
       setIsLoading(true);
       try {
-        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice']; // Default ingredients
-        
+        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice'];
         if (supabase) {
           try {
             const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
@@ -428,23 +386,17 @@ const RecipesPage = () => {
             }
           } catch (error) {
             console.error("Error fetching pantry items:", error);
-            // Continue with default ingredients
           }
         }
-        
-        // Get recipes based on ingredients
         const apiRecipes = await searchRecipesByIngredients(ingredients);
-        
         if (apiRecipes.length > 0) {
           setRecipes(apiRecipes);
         } else {
-          // Fallback to cuisine-based search
           const defaultRecipes = await searchRecipesByCuisine('Italian');
           setRecipes(defaultRecipes);
         }
       } catch (error) {
         console.error('Error fetching initial recipes:', error);
-        // Fetch some default recipes as fallback
         try {
           const defaultRecipes = await searchRecipesByCuisine('Italian');
           setRecipes(defaultRecipes);
@@ -464,23 +416,32 @@ const RecipesPage = () => {
     fetchInitialRecipes();
   }, []);
   
-  // Show onboarding if it's the first visit
   if (showOnboarding) {
+    const step = onboardingSteps[onboardingStep];
     return (
       <div className="min-h-screen bg-kitchen-cream flex flex-col">
-        <Header 
-          title="Welcome to Recipe Ideas" 
-          showSettings={false} 
-          showBack={true} 
-          onBack={handleBack} 
+        <Header
+          title="Welcome to Recipe Ideas"
+          showSettings={false}
+          showBack={true}
+          onBack={handleBack}
         />
-        
-        <OnboardingSteps 
-          currentStep={onboardingStep} 
-          setCurrentStep={setOnboardingStep}
-          completeOnboarding={completeOnboarding}
-        />
-        
+        <main className="flex-1 px-4 py-6 flex flex-col items-center justify-center">
+          <div className="max-w-lg w-full bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-bold text-center mb-2">{step.title}</h2>
+            <p className="text-center text-gray-600 mb-4">{step.description}</p>
+            <div>{step.content}</div>
+            {onboardingStep > 0 && (
+              <Button
+                onClick={() => setOnboardingStep(onboardingStep - 1)}
+                variant="ghost"
+                className="mt-4"
+              >
+                Back
+              </Button>
+            )}
+          </div>
+        </main>
         <Footer />
       </div>
     );
@@ -488,13 +449,12 @@ const RecipesPage = () => {
   
   return (
     <div className="min-h-screen bg-kitchen-cream flex flex-col">
-      <Header 
-        title="Recipe Ideas" 
-        showSettings={false} 
-        showBack={true} 
-        onBack={handleBack} 
+      <Header
+        title="Recipe Ideas"
+        showSettings={false}
+        showBack={true}
+        onBack={handleBack}
       />
-      
       <main className="flex-1 px-4 py-6">
         <div className="mb-6">
           <Button
@@ -503,31 +463,32 @@ const RecipesPage = () => {
           >
             {showGenerator ? "Browse Recipe Ideas" : "Create Custom Recipe"}
           </Button>
-          
           {!showGenerator && (
             <Button
               onClick={getAiSuggestions}
               className="w-full bg-kitchen-green/90 hover:bg-kitchen-green mb-2"
               disabled={isLoading}
             >
-              {isLoading ? "Loading suggestions..." : "Get AI Suggestions"}
+              {isLoading ? <span className="flex items-center"><Utensils className="animate-spin mr-2" size={18}/> Loading suggestions...</span> : "Get AI Suggestions"}
             </Button>
           )}
         </div>
         
-        {showGenerator ? (
+        {isLoading ? (
+          <AiLoadingAnimation message="Cooking up suggestions for you..." />
+        ) : showGenerator ? (
           <div>
             {selectedRecipe ? (
-              <RecipeDetail 
-                recipe={selectedRecipe} 
+              <RecipeDetail
+                recipe={selectedRecipe}
                 onTryAnother={handleTryAnother}
                 kitchenStyle={selectedStyle}
                 isFavorite={selectedRecipe.id ? favoriteRecipes.includes(selectedRecipe.id) : false}
                 onToggleFavorite={() => selectedRecipe.id && toggleFavorite(selectedRecipe.id)}
               />
             ) : generatedRecipe ? (
-              <RecipeDetail 
-                recipe={generatedRecipe} 
+              <RecipeDetail
+                recipe={generatedRecipe}
                 onTryAnother={handleTryAnother}
                 kitchenStyle={selectedStyle}
                 isFavorite={generatedRecipe.id ? favoriteRecipes.includes(generatedRecipe.id) : false}
@@ -535,11 +496,11 @@ const RecipesPage = () => {
               />
             ) : (
               <>
-                <KitchenStyleSelector 
+                <KitchenStyleSelector
                   selectedStyle={selectedStyle}
                   onSelect={handleStyleSelect}
                 />
-                <RecipeGenerator 
+                <RecipeGenerator
                   onGenerate={generateRecipe}
                   isGenerating={isGenerating}
                   kitchenStyle={selectedStyle}
@@ -550,7 +511,7 @@ const RecipesPage = () => {
         ) : (
           <>
             {!isLoading && recipes.length > 0 && (
-              <FavoriteRecipesManager 
+              <FavoriteRecipesManager
                 favoriteRecipes={favoriteRecipes}
                 recipes={recipes}
                 onViewRecipe={handleRecipeClick}
@@ -558,7 +519,7 @@ const RecipesPage = () => {
               />
             )}
             
-            <CuisineSelector 
+            <CuisineSelector
               selectedCuisine={selectedCuisine}
               onSelect={handleCuisineSelect}
             />
@@ -579,7 +540,6 @@ const RecipesPage = () => {
           </>
         )}
       </main>
-      
       <Footer />
     </div>
   );

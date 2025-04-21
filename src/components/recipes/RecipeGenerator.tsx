@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Utensils, ChefHat } from 'lucide-react';
@@ -18,14 +17,33 @@ const commonIngredients = [
   'Broccoli', 'Spinach', 'Eggs', 'Milk', 'Cheese'
 ];
 
-const RecipeGenerator: React.FC<RecipeGeneratorProps> = ({ 
-  onGenerate, 
+const RecipeGenerator: React.FC<RecipeGeneratorProps> = ({
+  onGenerate,
   isGenerating,
-  kitchenStyle
+  kitchenStyle,
 }) => {
   const { toast } = useToast();
   const [customIngredient, setCustomIngredient] = useState('');
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [pantryIngredients, setPantryIngredients] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    async function fetchPantry() {
+      try {
+        const url = import.meta.env.VITE_SUPABASE_URL;
+        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (url && key) {
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabase = createClient(url, key);
+          const { data } = await supabase.from('pantry_items').select('name');
+          if (data) setPantryIngredients(data.map(p => p.name));
+        }
+      } catch (e) {
+        setPantryIngredients([]);
+      }
+    }
+    fetchPantry();
+  }, []);
 
   const handleIngredientToggle = (ingredient: string) => {
     setSelectedIngredients(prev => 
@@ -71,6 +89,25 @@ const RecipeGenerator: React.FC<RecipeGeneratorProps> = ({
         <ChefHat className="mr-2 text-kitchen-green" size={20} />
         Recipe Generator ({kitchenStyle} Style)
       </h2>
+      <div className="flex mb-3 items-center gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() =>
+            setSelectedIngredients(
+              Array.from(new Set([...selectedIngredients, ...pantryIngredients]))
+            )
+          }
+          disabled={pantryIngredients.length === 0}
+        >
+          Import From Pantry
+        </Button>
+        <span className="text-xs text-gray-400">
+          {!pantryIngredients.length
+            ? "No pantry items found"
+            : `Found ${pantryIngredients.length} pantry items`}
+        </span>
+      </div>
       
       <div className="mb-4">
         <p className="text-sm text-gray-600 mb-2">Add ingredients from your pantry:</p>

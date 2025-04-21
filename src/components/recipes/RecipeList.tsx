@@ -1,8 +1,7 @@
-
 import React from 'react';
 import RecipeCard, { RecipeData } from './RecipeCard';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Heart, Trash2 } from 'lucide-react';
 
 interface RecipeListProps {
   recipes: RecipeData[];
@@ -53,16 +52,45 @@ const RecipeList: React.FC<RecipeListProps> = ({
           <p className="text-gray-500 mb-4">Try adding more items to your pantry!</p>
         </div>
       ) : (
-        recipes.map(recipe => (
-          <RecipeCard
-            key={recipe.id}
-            recipe={recipe}
-            onClick={onRecipeClick}
-            isFavorite={favoriteRecipes?.includes(recipe.id)}
-            onToggleFavorite={onToggleFavorite}
-            onDelete={onDeleteRecipe}
-          />
-        ))
+        <div className="space-y-3">
+        {recipes.map(recipe => (
+          <div key={recipe.id} className="relative group">
+            <RecipeCard
+              recipe={recipe}
+              onClick={onRecipeClick}
+              isFavorite={favoriteRecipes?.includes(recipe.id)}
+              onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(recipe.id) : undefined}
+              onDelete={onDeleteRecipe ? () => onDeleteRecipe(recipe.id) : undefined}
+            />
+            <div className="absolute top-2 right-3 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition">
+              {onToggleFavorite && (
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    onToggleFavorite(recipe.id);
+                  }}
+                  aria-label={favoriteRecipes?.includes(recipe.id) ? "Remove favorite" : "Add favorite"}
+                  className={"rounded-full p-1 shadow bg-white hover:bg-kitchen-green/5"}
+                >
+                  <Heart size={18} className={favoriteRecipes?.includes(recipe.id) ? "text-red-500 fill-current" : "text-gray-400"} />
+                </button>
+              )}
+              {onDeleteRecipe && (
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    onDeleteRecipe(recipe.id);
+                  }}
+                  aria-label="Delete recipe"
+                  className="rounded-full p-1 shadow bg-white hover:bg-red-100"
+                >
+                  <Trash2 size={18} className="text-gray-400" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        </div>
       )}
     </div>
   );
