@@ -1,9 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-react';
 
-export type KitchenStyle = 'Italian' | 'Asian' | 'Mediterranean' | 'Vegan' | 'Indian' | 'Mexican' | 'French' | 'Middle Eastern' | 'American' | 'Thai' | 'Japanese' | 'Korean' | 'All' | string;
+export type KitchenStyle = 
+  | 'Italian' | 'Asian' | 'Mediterranean' | 'Vegan' | 'Indian' | 'Mexican' | 'French'
+  | 'Middle Eastern' | 'American' | 'Thai' | 'Japanese' | 'Korean' | 'Spanish' | 'Greek'
+  | 'Brazilian' | 'Turkish' | 'African' | 'German' | 'Nordic' | 'Moroccan' | 'Chinese'
+  | 'Vietnamese' | 'Caribbean' | 'Persian' | 'All'
+  | string;
 
 interface KitchenStyleSelectorProps {
   selectedStyle: KitchenStyle;
@@ -25,20 +31,12 @@ try {
   console.error("Error setting up Supabase in KitchenStyleSelector", err);
 }
 
-const predefinedStyles: KitchenStyle[] = [
+const fallbackStyles: KitchenStyle[] = [
   'All',
-  'Italian',
-  'Asian',
-  'Mediterranean',
-  'Vegan',
-  'Indian',
-  'Mexican',
-  'French',
-  'Middle Eastern',
-  'American',
-  'Thai',
-  'Japanese',
-  'Korean'
+  'Italian', 'Asian', 'Mediterranean', 'Vegan', 'Indian', 'Mexican',
+  'French', 'Middle Eastern', 'American', 'Thai', 'Japanese', 'Korean',
+  'Spanish', 'Greek', 'Brazilian', 'Turkish', 'African', 'German',
+  'Nordic', 'Moroccan', 'Chinese', 'Vietnamese', 'Caribbean', 'Persian'
 ];
 
 const KitchenStyleSelector: React.FC<KitchenStyleSelectorProps> = ({ 
@@ -56,27 +54,26 @@ const KitchenStyleSelector: React.FC<KitchenStyleSelectorProps> = ({
       setLoadingStyles(true);
       try {
         const { data, error } = await supabase.from('kitchen_styles').select('name');
-        if (data && Array.isArray(data)) {
-          const dbStyles = data.map((row: any) => row.name).filter(Boolean);
-          setDbKitchenStyles(dbStyles);
+        if (data && Array.isArray(data) && data.length > 0) {
+          // Show all DB styles (no merging/deduplication except removing falsy)
+          setDbKitchenStyles(data.map((row: any) => row.name).filter(Boolean));
+        } else {
+          // fallback to extended local list
+          setDbKitchenStyles(fallbackStyles);
         }
         if (error) {
           console.error("Error fetching kitchen styles from DB:", error);
         }
       } catch (err) {
         console.error("KitchenStyleSelector - fetching DB styles:", err);
+        setDbKitchenStyles(fallbackStyles);
       }
       setLoadingStyles(false);
     };
     fetchKitchenStyles();
   }, []);
 
-  // Merge without duplicates and keep "All" at start
-  const uniqueStyles = Array.from(new Set(predefinedStyles.concat(dbKitchenStyles))).sort((a, b) => {
-    if (a === "All") return -1;
-    if (b === "All") return 1;
-    return a.localeCompare(b);
-  });
+  const stylesToShow = dbKitchenStyles.length > 0 ? dbKitchenStyles : fallbackStyles;
 
   const handleAddCustomStyle = () => {
     if (customStyle.trim()) {
@@ -101,7 +98,7 @@ const KitchenStyleSelector: React.FC<KitchenStyleSelectorProps> = ({
             Loading...
           </Button>
         )}
-        {uniqueStyles.map((style) => (
+        {stylesToShow.map((style) => (
           <Button
             key={style}
             variant={selectedStyle === style ? "default" : "outline"}
