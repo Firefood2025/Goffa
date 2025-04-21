@@ -17,12 +17,21 @@ import OnboardingSteps from '@/components/recipes/OnboardingSteps';
 import LoadingAnimation from '@/components/recipes/LoadingAnimation';
 import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
 
+// Initialize Supabase client (if environment variables exist)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+let supabase = null;
+try {
+  if (supabaseUrl && supabaseAnonKey) {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    console.log("Supabase client initialized successfully");
+  } else {
+    console.log("Supabase environment variables not found");
+  }
+} catch (error) {
+  console.error("Error initializing Supabase client:", error);
+}
 
 const RecipesPage = () => {
   const navigate = useNavigate();
@@ -74,8 +83,20 @@ const RecipesPage = () => {
     setIsLoading(true);
     try {
       if (cuisine === 'All') {
-        const pantryItems = await supabase?.from('pantry_items').select('name').limit(10);
-        const ingredients = pantryItems?.data?.map(item => item.name) || [];
+        // Get pantry items if Supabase is initialized
+        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice']; // Default ingredients
+        
+        if (supabase) {
+          try {
+            const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
+            if (pantryItems && pantryItems.length > 0) {
+              ingredients = pantryItems.map(item => item.name);
+            }
+          } catch (error) {
+            console.error("Error fetching pantry items:", error);
+          }
+        }
+        
         const apiRecipes = await searchRecipesByIngredients(ingredients);
         setRecipes(apiRecipes);
       } else {
@@ -102,43 +123,44 @@ const RecipesPage = () => {
   const getAiSuggestions = async () => {
     setIsLoading(true);
     try {
-      if (!supabase) {
-        throw new Error('Supabase client is not initialized. Check your environment variables.');
-      }
-
-      const { data: pantryItems } = await supabase
-        .from('pantry_items')
-        .select('name')
-        .limit(10);
-
-      const ingredients = pantryItems?.map(item => item.name) || [];
+      // Get ingredients from pantry or use defaults
+      let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice']; // Default ingredients
       
-      if (ingredients.length === 0) {
-        throw new Error('No pantry items found. Please add some ingredients to your pantry first.');
+      if (supabase) {
+        try {
+          const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
+          if (pantryItems && pantryItems.length > 0) {
+            ingredients = pantryItems.map(item => item.name);
+          }
+        } catch (error) {
+          console.error("Error fetching pantry items:", error);
+          // Continue with default ingredients
+        }
       }
       
+      // Use the MealDB API to get recipes based on ingredients
       const apiRecipes = await searchRecipesByIngredients(ingredients);
       
       if (apiRecipes.length === 0) {
         toast({
           title: "No recipes found",
-          description: "Try adding more ingredients to your pantry",
+          description: "Try adding more ingredients to your pantry or try different ingredients",
           variant: "destructive",
           duration: 3000,
         });
       } else {
         setRecipes(apiRecipes);
         toast({
-          title: "AI Suggestions Ready",
-          description: "Based on your pantry items",
+          title: "Recipes Found",
+          description: `Found ${apiRecipes.length} recipe${apiRecipes.length > 1 ? 's' : ''} based on your ingredients`,
           duration: 3000,
         });
       }
     } catch (error) {
-      console.error('Error getting AI suggestions:', error);
+      console.error('Error getting recipes:', error);
       toast({
         title: "Couldn't get suggestions",
-        description: error instanceof Error ? error.message : "Please try again later",
+        description: "Please try again later",
         variant: "destructive",
         duration: 3000,
       });
@@ -150,10 +172,6 @@ const RecipesPage = () => {
   const generateRecipe = async (ingredients: string[]) => {
     setIsGenerating(true);
     try {
-      if (!supabase) {
-        throw new Error('Supabase client is not initialized');
-      }
-      
       // First try to find a recipe by ingredients from the API
       const apiRecipes = await searchRecipesByIngredients(ingredients);
       
@@ -197,54 +215,61 @@ const RecipesPage = () => {
       
       // If API recipes aren't found or details couldn't be fetched, fall back to AI generation
       if (supabaseUrl) {
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseAnonKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              ingredients, 
-              cuisine: selectedStyle === 'All' ? undefined : selectedStyle,
-              detailed: true 
-            }),
+        try {
+          const response = await fetch(
+            `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                ingredients, 
+                cuisine: selectedStyle === 'All' ? undefined : selectedStyle,
+                detailed: true 
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error('Failed to generate recipe. Server response: ' + response.status);
           }
-        );
 
-        if (!response.ok) {
-          throw new Error('Failed to generate recipe');
+          const data = await response.json();
+          if (data.recipes && data.recipes.length > 0) {
+            const recipe = data.recipes[0];
+            setGeneratedRecipe({
+              id: recipe.id,
+              title: recipe.title,
+              cookTime: recipe.cookTime || Math.floor(Math.random() * 30) + 20,
+              ingredients: recipe.ingredients || ingredients,
+              steps: recipe.steps || ['Mix all ingredients together', 'Cook until done'],
+              image: recipe.image,
+              nutrition: recipe.nutrition || {
+                calories: Math.floor(Math.random() * 400) + 200,
+                protein: Math.floor(Math.random() * 20) + 10,
+                carbs: Math.floor(Math.random() * 30) + 20,
+                fat: Math.floor(Math.random() * 15) + 5
+              },
+              tagline: recipe.tagline || `Inspired by your pantry and ${selectedStyle} vibe!`
+            });
+            
+            toast({
+              title: "Recipe Created!",
+              description: "Your custom recipe is ready",
+              duration: 3000,
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('Error from Supabase function:', error);
+          // Fall back to simulation
         }
-
-        const data = await response.json();
-        if (data.recipes && data.recipes.length > 0) {
-          const recipe = data.recipes[0];
-          setGeneratedRecipe({
-            title: recipe.title,
-            cookTime: recipe.cookTime || Math.floor(Math.random() * 30) + 20,
-            ingredients: recipe.ingredients || ingredients,
-            steps: recipe.steps || ['Mix all ingredients together', 'Cook until done'],
-            nutrition: recipe.nutrition || {
-              calories: Math.floor(Math.random() * 400) + 200,
-              protein: Math.floor(Math.random() * 20) + 10,
-              carbs: Math.floor(Math.random() * 30) + 20,
-              fat: Math.floor(Math.random() * 15) + 5
-            },
-            tagline: recipe.tagline || `Inspired by your pantry and ${selectedStyle} vibe!`
-          });
-          
-          toast({
-            title: "Recipe Created!",
-            description: "Your custom recipe is ready",
-            duration: 3000,
-          });
-        } else {
-          throw new Error('No recipe generated');
-        }
-      } else {
-        simulateRecipeGeneration(ingredients);
       }
+      
+      // Fallback: simulate recipe generation with the ingredients provided
+      simulateRecipeGeneration(ingredients);
     } catch (error) {
       console.error('Error generating recipe:', error);
       simulateRecipeGeneration(ingredients);
@@ -288,8 +313,6 @@ const RecipesPage = () => {
         description: "Your custom recipe is ready",
         duration: 3000,
       });
-      
-      setIsGenerating(false);
     }, 2000);
   };
   
@@ -306,10 +329,10 @@ const RecipesPage = () => {
           ingredients: recipeDetails.ingredients,
           measurements: recipeDetails.measurements,
           steps: recipeDetails.steps,
+          image: recipeDetails.image,
           tagline: recipeDetails.cuisine 
             ? `Authentic ${recipeDetails.cuisine} cuisine` 
             : 'Delicious recipe to try today!',
-          image: recipeDetails.image,
           cuisine: recipeDetails.cuisine,
           category: recipeDetails.category,
           tags: recipeDetails.tags
@@ -395,17 +418,27 @@ const RecipesPage = () => {
     const fetchInitialRecipes = async () => {
       setIsLoading(true);
       try {
+        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice']; // Default ingredients
+        
         if (supabase) {
-          const { data: pantryItems } = await supabase
-            .from('pantry_items')
-            .select('name')
-            .limit(10);
-
-          const ingredients = pantryItems?.map(item => item.name) || [];
-          const apiRecipes = await searchRecipesByIngredients(ingredients);
+          try {
+            const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
+            if (pantryItems && pantryItems.length > 0) {
+              ingredients = pantryItems.map(item => item.name);
+            }
+          } catch (error) {
+            console.error("Error fetching pantry items:", error);
+            // Continue with default ingredients
+          }
+        }
+        
+        // Get recipes based on ingredients
+        const apiRecipes = await searchRecipesByIngredients(ingredients);
+        
+        if (apiRecipes.length > 0) {
           setRecipes(apiRecipes);
         } else {
-          // Fetch some default recipes if no pantry items are available
+          // Fallback to cuisine-based search
           const defaultRecipes = await searchRecipesByCuisine('Italian');
           setRecipes(defaultRecipes);
         }
