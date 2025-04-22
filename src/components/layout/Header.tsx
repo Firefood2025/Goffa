@@ -12,7 +12,6 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ 
-  title = "KOFFA", 
   showSettings = true,
   showBack = false,
   onBack
@@ -41,9 +40,8 @@ const Header: React.FC<HeaderProps> = ({
           <img 
             src="/lovable-uploads/39f717d2-59da-48cf-9598-a998871f5d86.png" 
             alt="KOFFA Logo" 
-            className="h-10 mr-2" 
+            className="h-10" 
           />
-          <h1 className="text-xl font-bold font-heading text-kitchen-dark">{title}</h1>
         </Link>
       </div>
       {showSettings && (
