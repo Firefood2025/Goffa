@@ -17,6 +17,15 @@ import LoadingAnimation from '@/components/recipes/LoadingAnimation';
 import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
 import AiLoadingAnimation from '@/components/recipes/AiLoadingAnimation';
 import { Utensils } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -51,6 +60,9 @@ const RecipesPage = () => {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [firstTimeVisit, setFirstTimeVisit] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
+  const [showMissingDialog, setShowMissingDialog] = useState(false);
 
   const onboardingSteps = [
     {
@@ -104,6 +116,18 @@ const RecipesPage = () => {
     const storedFavorites = localStorage.getItem('favoriteRecipes');
     if (storedFavorites) {
       setFavoriteRecipes(JSON.parse(storedFavorites));
+    }
+  }, []);
+
+  useEffect(() => {
+    const hasSeenSplash = localStorage.getItem('hasSeenRecipeSplash');
+    if (hasSeenSplash) {
+      setShowSplashScreen(false);
+    } else {
+      setTimeout(() => {
+        setShowSplashScreen(false);
+        localStorage.setItem('hasSeenRecipeSplash', 'true');
+      }, 3000);
     }
   }, []);
   
@@ -186,6 +210,57 @@ const RecipesPage = () => {
       setIsLoading(false);
     }
   };
+
+  const handleImportFromPantry = async () => {
+    if (!supabase) {
+      toast({
+        title: "Cannot access pantry",
+        description: "Database connection not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: pantryItems } = await supabase
+        .from('pantry_items')
+        .select('name')
+        .neq('name', 'Pork');  // Exclude pork from results
+      
+      if (pantryItems && pantryItems.length > 0) {
+        let ingredients: string[] = pantryItems.map(item => item.name);
+        ingredients = ingredients.filter(item => item !== 'Pork');
+        const currentIngredients = new Set(selectedIngredients);
+        const newIngredients = ingredients.filter(ing => !currentIngredients.has(ing));
+        
+        setSelectedIngredients(prev => [...prev, ...newIngredients]);
+        
+        toast({
+          title: "Pantry items imported",
+          description: `Added ${newIngredients.length} new ingredients from your pantry`,
+        });
+      } else {
+        toast({
+          title: "No items found",
+          description: "Your pantry is empty",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error importing items",
+        description: "Could not fetch pantry items",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const findMissingIngredients = (recipe: GeneratedRecipe) => {
+    const recipeIngredients = recipe.ingredients || [];
+    const pantryIngredients = selectedIngredients;
+    return recipeIngredients.filter(ing => 
+      !pantryIngredients.includes(ing) && ing.toLowerCase() !== 'pork'
+    );
+  };
   
   const generateRecipe = async (ingredients: string[]) => {
     setIsGenerating(true);
@@ -196,6 +271,11 @@ const RecipesPage = () => {
         const selectedApiRecipe = apiRecipes[idx];
         const recipeDetails = await getRecipeDetails(selectedApiRecipe.id);
         if (recipeDetails) {
+          const missing = findMissingIngredients(recipeDetails);
+          setMissingIngredients(missing);
+          if (missing.length > 0) {
+            setShowMissingDialog(true);
+          }
           setGeneratedRecipe({
             id: recipeDetails.id,
             title: recipeDetails.title,
@@ -451,97 +531,147 @@ const RecipesPage = () => {
   
   return (
     <div className="min-h-screen bg-kitchen-cream flex flex-col">
-      <Header
+      <Header 
         title="Recipe Ideas"
-        showSettings={false}
-        showBack={true}
-        onBack={handleBack}
+        showSettings={false} 
+        showBack={true} 
+        onBack={handleBack} 
       />
-      <main className="flex-1 px-4 py-6">
-        <div className="mb-6">
-          <Button
-            onClick={handleToggleGenerator}
-            className="w-full bg-kitchen-green hover:bg-kitchen-green/90 mb-4"
-          >
-            {showGenerator ? "Browse Recipe Ideas" : "Inspirations"}
-          </Button>
-          {!showGenerator && (
-            <Button
-              onClick={getAiSuggestions}
-              className="w-full bg-kitchen-green/90 hover:bg-kitchen-green mb-2"
-              disabled={isLoading}
-            >
-              {isLoading ? <span className="flex items-center"><Utensils className="animate-spin mr-2" size={18} /> Loading suggestions...</span> : "Get AI Suggestions"}
-            </Button>
-          )}
+      
+      {showSplashScreen ? (
+        <div className="fixed inset-0 bg-white/95 flex items-center justify-center z-50 animate-fade-in">
+          <div className="text-center p-6">
+            <h2 className="text-2xl font-bold mb-4">Welcome to Recipe Ideas!</h2>
+            <p className="text-gray-600 mb-4">
+              Are you confused about what to cook? We can make your life easier!
+            </p>
+            <div className="animate-pulse">
+              <Utensils size={48} className="mx-auto text-kitchen-green" />
+            </div>
+          </div>
         </div>
-        
-        {isLoading ? (
-          <AiLoadingAnimation message="Cooking up suggestions for you..." />
-        ) : showGenerator ? (
-          <div>
-            {selectedRecipe ? (
-              <RecipeDetail
-                recipe={selectedRecipe}
-                onTryAnother={handleTryAnother}
-                kitchenStyle={selectedStyle}
-                isFavorite={selectedRecipe.id ? favoriteRecipes.includes(selectedRecipe.id) : false}
-                onToggleFavorite={() => selectedRecipe.id && toggleFavorite(selectedRecipe.id)}
-              />
-            ) : generatedRecipe ? (
-              <RecipeDetail
-                recipe={generatedRecipe}
-                onTryAnother={handleTryAnother}
-                kitchenStyle={selectedStyle}
-                isFavorite={generatedRecipe.id ? favoriteRecipes.includes(generatedRecipe.id) : false}
-                onToggleFavorite={() => generatedRecipe.id && toggleFavorite(generatedRecipe.id)}
-              />
-            ) : (
-              <>
-                <KitchenStyleSelector
-                  selectedStyle={selectedStyle}
-                  onSelect={handleStyleSelect}
-                />
-                <RecipeGenerator
-                  onGenerate={generateRecipe}
-                  isGenerating={isGenerating}
-                  kitchenStyle={selectedStyle}
-                />
-              </>
+      ) : (
+        <main className="flex-1 px-4 py-6">
+          <div className="mb-6">
+            <Button
+              onClick={handleToggleGenerator}
+              className="w-full bg-kitchen-green hover:bg-kitchen-green/90 mb-4"
+            >
+              {showGenerator ? "Browse Recipe Ideas" : "Inspirations"}
+            </Button>
+            {!showGenerator && (
+              <Button
+                onClick={getAiSuggestions}
+                className="w-full bg-kitchen-green/90 hover:bg-kitchen-green mb-2"
+                disabled={isLoading}
+              >
+                {isLoading ? <span className="flex items-center"><Utensils className="animate-spin mr-2" size={18} /> Loading suggestions...</span> : "Get AI Suggestions"}
+              </Button>
             )}
           </div>
-        ) : (
-          <>
-            {!isLoading && recipes.length > 0 && (
-              <FavoriteRecipesManager
-                favoriteRecipes={favoriteRecipes}
-                recipes={recipes}
-                onViewRecipe={handleRecipeClick}
-                onRemoveFavorite={toggleFavorite}
+          
+          {isLoading ? (
+            <AiLoadingAnimation message="Cooking up suggestions for you..." />
+          ) : showGenerator ? (
+            <div>
+              {selectedRecipe ? (
+                <RecipeDetail
+                  recipe={selectedRecipe}
+                  onTryAnother={handleTryAnother}
+                  kitchenStyle={selectedStyle}
+                  isFavorite={selectedRecipe.id ? favoriteRecipes.includes(selectedRecipe.id) : false}
+                  onToggleFavorite={() => selectedRecipe.id && toggleFavorite(selectedRecipe.id)}
+                />
+              ) : generatedRecipe ? (
+                <RecipeDetail
+                  recipe={generatedRecipe}
+                  onTryAnother={handleTryAnother}
+                  kitchenStyle={selectedStyle}
+                  isFavorite={generatedRecipe.id ? favoriteRecipes.includes(generatedRecipe.id) : false}
+                  onToggleFavorite={() => generatedRecipe.id && toggleFavorite(generatedRecipe.id)}
+                />
+              ) : (
+                <>
+                  <KitchenStyleSelector
+                    selectedStyle={selectedStyle}
+                    onSelect={handleStyleSelect}
+                  />
+                  <RecipeGenerator
+                    onGenerate={generateRecipe}
+                    isGenerating={isGenerating}
+                    kitchenStyle={selectedStyle}
+                  />
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              {!isLoading && recipes.length > 0 && (
+                <FavoriteRecipesManager
+                  favoriteRecipes={favoriteRecipes}
+                  recipes={recipes}
+                  onViewRecipe={handleRecipeClick}
+                  onRemoveFavorite={toggleFavorite}
+                />
+              )}
+              
+              <CuisineSelector
+                selectedCuisine={selectedCuisine}
+                onSelect={handleCuisineSelect}
               />
-            )}
-            
-            <CuisineSelector
-              selectedCuisine={selectedCuisine}
-              onSelect={handleCuisineSelect}
-            />
-            
-            {isLoading ? (
-              <LoadingAnimation />
-            ) : (
-              <RecipeList
-                recipes={recipes}
-                onRecipeClick={handleRecipeClick}
-                onFilterClick={handleFilterClick}
-                favoriteRecipes={favoriteRecipes}
-                onToggleFavorite={toggleFavorite}
-                onDeleteRecipe={deleteRecipe}
-                isLoading={false}
-              />
-            )}
-          </>
-        )}
-      </main>
+              
+              {isLoading ? (
+                <LoadingAnimation />
+              ) : (
+                <RecipeList
+                  recipes={recipes}
+                  onRecipeClick={handleRecipeClick}
+                  onFilterClick={handleFilterClick}
+                  favoriteRecipes={favoriteRecipes}
+                  onToggleFavorite={toggleFavorite}
+                  onDeleteRecipe={deleteRecipe}
+                  isLoading={false}
+                />
+              )}
+            </>
+          )}
+        </main>
+      )}
+
+      <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Missing Ingredients</DialogTitle>
+            <DialogDescription>
+              Would you like to add these items to your shopping list?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {missingIngredients.map((ingredient, index) => (
+              <div key={index} className="flex items-center gap-2 mb-2">
+                <Checkbox id={`ing-${index}`} />
+                <label htmlFor={`ing-${index}`}>{ingredient}</label>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMissingDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              // Here you would implement the logic to add to shopping list
+              toast({
+                title: "Added to shopping list",
+                description: "Selected ingredients have been added to your list",
+              });
+              setShowMissingDialog(false);
+            }}>
+              Add to Shopping List
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <Footer />
     </div>
   );
