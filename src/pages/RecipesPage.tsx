@@ -15,7 +15,6 @@ import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } 
 import OnboardingSteps from '@/components/recipes/OnboardingSteps';
 import LoadingAnimation from '@/components/recipes/LoadingAnimation';
 import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
-import AiLoadingAnimation from '@/components/recipes/AiLoadingAnimation';
 import { Utensils } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -177,39 +176,6 @@ const RecipesPage = () => {
   const handleStyleSelect = (style: KitchenStyle) => {
     setSelectedStyle(style);
     setGeneratedRecipe(null);
-  };
-
-  const getAiSuggestions = async () => {
-    setIsLoading(true);
-    try {
-      let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice'];
-      if (supabase) {
-        try {
-          const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
-          if (pantryItems && pantryItems.length > 0) {
-            ingredients = pantryItems.map(item => item.name);
-          }
-        } catch (error) {
-          console.error("Error fetching pantry items:", error);
-        }
-      }
-      const apiRecipes = await searchRecipesByIngredients(ingredients);
-      setRecipes(apiRecipes);
-      toast({
-        title: "Recipes Found",
-        description: `Found ${apiRecipes.length} recipe${apiRecipes.length > 1 ? "s" : ""} based on your ingredients`,
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "Couldn't get suggestions",
-        description: "Please try again later.",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleImportFromPantry = async () => {
@@ -563,19 +529,10 @@ const RecipesPage = () => {
             >
               {showGenerator ? "Browse Recipe Ideas" : "Inspirations"}
             </Button>
-            {!showGenerator && (
-              <Button
-                onClick={getAiSuggestions}
-                className="w-full bg-kitchen-green/90 hover:bg-kitchen-green mb-2"
-                disabled={isLoading}
-              >
-                {isLoading ? <span className="flex items-center"><Utensils className="animate-spin mr-2" size={18} /> Loading suggestions...</span> : "Get AI Suggestions"}
-              </Button>
-            )}
           </div>
           
           {isLoading ? (
-            <AiLoadingAnimation message="Cooking up suggestions for you..." />
+            <LoadingAnimation />
           ) : showGenerator ? (
             <div>
               {selectedRecipe ? (
