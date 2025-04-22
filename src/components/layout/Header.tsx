@@ -1,6 +1,8 @@
 
 import React from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   title?: string;
@@ -10,11 +12,17 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ 
-  title = "PantryChef AI", 
+  title = "KOFFA", 
   showSettings = true,
   showBack = false,
   onBack
 }) => {
+  const navigate = useNavigate();
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
+  };
+
   return (
     <header className="flex items-center justify-between p-4 border-b border-muted">
       <div className="flex items-center">
@@ -29,15 +37,28 @@ const Header: React.FC<HeaderProps> = ({
             </svg>
           </button>
         )}
-        <h1 className="text-xl font-bold font-heading text-kitchen-dark">{title}</h1>
+        <Link to="/" className="flex items-center">
+          <img 
+            src="/lovable-uploads/39f717d2-59da-48cf-9598-a998871f5d86.png" 
+            alt="KOFFA Logo" 
+            className="h-10 mr-2" 
+          />
+          <h1 className="text-xl font-bold font-heading text-kitchen-dark">{title}</h1>
+        </Link>
       </div>
       {showSettings && (
-        <button 
-          className="p-2 rounded-full text-kitchen-dark hover:bg-muted" 
-          aria-label="Settings"
-        >
-          <Settings size={20} />
-        </button>
+        <div className="flex gap-2">
+          <Link to="/profile" className="p-2 rounded-full text-kitchen-dark hover:bg-muted">
+            <User size={20} />
+          </Link>
+          <button 
+            onClick={handleSettingsClick}
+            className="p-2 rounded-full text-kitchen-dark hover:bg-muted" 
+            aria-label="Settings"
+          >
+            <Settings size={20} />
+          </button>
+        </div>
       )}
     </header>
   );
