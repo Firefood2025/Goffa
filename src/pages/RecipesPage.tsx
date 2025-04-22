@@ -63,6 +63,7 @@ const RecipesPage = () => {
   const [showSplashScreen, setShowSplashScreen] = useState(true);
   const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
   const [showMissingDialog, setShowMissingDialog] = useState(false);
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
 
   const onboardingSteps = [
     {
@@ -271,12 +272,7 @@ const RecipesPage = () => {
         const selectedApiRecipe = apiRecipes[idx];
         const recipeDetails = await getRecipeDetails(selectedApiRecipe.id);
         if (recipeDetails) {
-          const missing = findMissingIngredients(recipeDetails);
-          setMissingIngredients(missing);
-          if (missing.length > 0) {
-            setShowMissingDialog(true);
-          }
-          setGeneratedRecipe({
+          const generatedRecipeData: GeneratedRecipe = {
             id: recipeDetails.id,
             title: recipeDetails.title,
             cookTime: recipeDetails.cookTime,
@@ -293,8 +289,15 @@ const RecipesPage = () => {
               carbs: Math.floor(Math.random() * 30) + 20,
               fat: Math.floor(Math.random() * 15) + 5,
             },
-            tagline: `A delicious ${recipeDetails.cuisine || selectedStyle} recipe with your selected ingredients!`,
-          });
+            tagline: `A delicious ${recipeDetails.cuisine || selectedStyle} recipe with your selected ingredients!`
+          };
+          
+          const missing = findMissingIngredients(generatedRecipeData);
+          setMissingIngredients(missing);
+          if (missing.length > 0) {
+            setShowMissingDialog(true);
+          }
+          setGeneratedRecipe(generatedRecipeData);
           toast({
             title: "Recipe Created!",
             description: "Your custom recipe is ready",
@@ -303,6 +306,7 @@ const RecipesPage = () => {
           return;
         }
       }
+      
       if (supabaseUrl) {
         const response = await fetch(
           `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
@@ -659,7 +663,6 @@ const RecipesPage = () => {
               Cancel
             </Button>
             <Button onClick={() => {
-              // Here you would implement the logic to add to shopping list
               toast({
                 title: "Added to shopping list",
                 description: "Selected ingredients have been added to your list",
