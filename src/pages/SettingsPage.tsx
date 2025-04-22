@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, 
   CreditCard, 
-  Family, 
+  Users, 
   Share, 
   Mail
 } from 'lucide-react';
@@ -61,7 +61,7 @@ const SettingsPage = () => {
               className="w-full flex justify-between items-center py-6 text-left"
             >
               <div className="flex items-center gap-3">
-                <Family className="text-kitchen-dark" />
+                <Users className="text-kitchen-dark" />
                 <div>
                   <p className="font-medium text-kitchen-dark">Family Members</p>
                   <p className="text-sm text-muted-foreground">Manage your family circle and permissions</p>
