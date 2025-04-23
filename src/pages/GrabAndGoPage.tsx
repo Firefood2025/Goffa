@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Check, Plus, ShoppingBag } from 'lucide-react';
@@ -63,25 +62,14 @@ const GrabAndGoPage = () => {
   const sortedCategories = Object.keys(groupedItems).sort();
 
   // --- Import logic ---
-  // Mock demonstration lists (for this demo, reuse mockShoppingLists if available, else one demo list)
-  // Each mockShoppingList shape: { id: string, name: string, items: string[] }
   // Map itemIds to ShoppingItemData from mockShoppingItems
-  const shoppingLists: Array<{ id: string; name: string; items: ShoppingItemData[] }> = 
-    (Array.isArray(mockShoppingLists) && mockShoppingLists.length > 0)
-      ? mockShoppingLists.map(list => ({
-          id: list.id,
-          name: list.name,
-          items: list.items
-            .map(itemId => mockShoppingItems.find(i => i.id === itemId))
-            .filter(Boolean) as ShoppingItemData[]
-        }))
-      : [
-          {
-            id: 'demo',
-            name: 'Weekly Essentials',
-            items: mockShoppingItems.slice(0, 3)
-          }
-        ];
+  const shoppingLists = mockShoppingLists.map(list => ({
+    id: list.id,
+    name: list.name,
+    items: list.items
+      .map(itemId => mockShoppingItems.find(i => i.id === itemId))
+      .filter(Boolean) as ShoppingItemData[]
+  }));
 
   // Merge imported items, avoiding duplicates by id
   const handleImportListItems = (listId: string) => {
@@ -248,4 +236,3 @@ const GrabAndGoPage = () => {
 };
 
 export default GrabAndGoPage;
-

@@ -228,6 +228,25 @@ export const mockShoppingItems: ShoppingItemData[] = [
   }
 ];
 
+// Mock shopping lists data
+export const mockShoppingLists = [
+  {
+    id: 'list1',
+    name: 'Weekly Groceries',
+    items: ['1', '2', '4'] // IDs reference mockShoppingItems
+  },
+  {
+    id: 'list2',
+    name: 'Party Supplies',
+    items: ['3', '5'] // IDs reference mockShoppingItems
+  },
+  {
+    id: 'list3',
+    name: 'Essentials',
+    items: ['1', '3'] // IDs reference mockShoppingItems
+  }
+];
+
 // Generate a list of expiring items for the home page
 export const getExpiringSoonItems = (days: number = 7) => {
   return mockPantryItems
