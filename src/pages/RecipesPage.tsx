@@ -4,22 +4,18 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@supabase/supabase-js';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import RecipeList from '@/components/recipes/RecipeList';
-import CuisineSelector, { Cuisine } from '@/components/recipes/CuisineSelector';
-import { RecipeData } from '@/components/recipes/RecipeCard';
-import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/KitchenStyleSelector';
-import RecipeGenerator from '@/components/recipes/RecipeGenerator';
-import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
-import { Button } from '@/components/ui/button';
-import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } from '@/services/mealDbService';
+import RecipeGeneratorContainer from '@/components/recipes/RecipeGeneratorContainer';
 import OnboardingScreen from '@/components/recipes/OnboardingScreen';
 import RecipeSplashScreen from '@/components/recipes/RecipeSplashScreen';
 import MissingIngredientsDialog from '@/components/recipes/MissingIngredientsDialog';
-import RecipeGeneratorContainer from '@/components/recipes/RecipeGeneratorContainer';
 import { Utensils } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import LoadingAnimation from '@/components/recipes/LoadingAnimation';
-import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
+import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } from '@/services/mealDbService';
+import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/KitchenStyleSelector';
+import { Cuisine } from '@/components/recipes/CuisineSelector';
+import { RecipeData } from '@/components/recipes/RecipeCard';
+import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +24,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import RecipeLoadingSection from '@/components/recipes/RecipeLoadingSection';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -510,39 +507,19 @@ const RecipesPage = () => {
             favoriteRecipes={favoriteRecipes}
             onToggleFavorite={toggleFavorite}
           />
-          {isLoading ? (
-            <LoadingAnimation />
-          ) : !showGenerator ? (
-            <>
-              {!isLoading && recipes.length > 0 && (
-                <FavoriteRecipesManager
-                  favoriteRecipes={favoriteRecipes}
-                  recipes={recipes}
-                  onViewRecipe={handleRecipeClick}
-                  onRemoveFavorite={toggleFavorite}
-                />
-              )}
-              
-              <CuisineSelector
-                selectedCuisine={selectedCuisine}
-                onSelect={handleCuisineSelect}
-              />
-              
-              {isLoading ? (
-                <LoadingAnimation />
-              ) : (
-                <RecipeList
-                  recipes={recipes}
-                  onRecipeClick={handleRecipeClick}
-                  onFilterClick={handleFilterClick}
-                  favoriteRecipes={favoriteRecipes}
-                  onToggleFavorite={toggleFavorite}
-                  onDeleteRecipe={deleteRecipe}
-                  isLoading={false}
-                />
-              )}
-            </>
-          ) : null}
+          {!showGenerator && (
+            <RecipeLoadingSection
+              isLoading={isLoading}
+              recipes={recipes}
+              favoriteRecipes={favoriteRecipes}
+              selectedCuisine={selectedCuisine}
+              handleCuisineSelect={handleCuisineSelect}
+              handleFilterClick={handleFilterClick}
+              handleRecipeClick={handleRecipeClick}
+              toggleFavorite={toggleFavorite}
+              deleteRecipe={deleteRecipe}
+            />
+          )}
         </main>
       )}
 
