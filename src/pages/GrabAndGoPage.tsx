@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Check, Plus, ShoppingBag } from 'lucide-react';
@@ -78,6 +79,7 @@ const GrabAndGoPage = () => {
     // Only add items that aren't already present in shoppingItems (by id)
     const existingIds = new Set(shoppingItems.map(i => i.id));
     const newItems = importList.items.filter(i => !existingIds.has(i.id));
+    
     if (newItems.length === 0) {
       toast({
         title: "No new items imported",
@@ -215,8 +217,9 @@ const GrabAndGoPage = () => {
               shoppingLists.map(list => (
                 <button
                   key={list.id}
-                  className="flex justify-between items-center w-full p-3 rounded-lg bg-gray-100 hover:bg-kitchen-green/10 border border-gray-200 transition-colors mb-1"
+                  className="flex justify-between items-center w-full p-3 rounded-lg bg-gray-100 hover:bg-kitchen-green/10 border border-gray-200 transition-colors mb-1 active:bg-kitchen-green/20"
                   onClick={() => handleImportListItems(list.id)}
+                  type="button"
                 >
                   <span className="font-semibold text-kitchen-dark">{list.name}</span>
                   <span className="text-gray-500 text-xs">{list.items.length} item{list.items.length !== 1 ? 's' : ''}</span>
