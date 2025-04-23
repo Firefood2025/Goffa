@@ -10,7 +10,7 @@ const FloatingGrabAndGoButton = () => {
   return (
     <Button
       onClick={() => navigate('/grab-and-go')}
-      className="fixed bottom-20 right-4 rounded-full w-14 h-14 bg-kitchen-green shadow-lg hover:bg-kitchen-green/90 animate-bounce hover:animate-none transition-all duration-300 z-50"
+      className="fixed bottom-20 right-4 rounded-full w-14 h-14 bg-kitchen-green shadow-lg hover:bg-kitchen-green/90 hover:scale-105 hover:shadow-xl transition-all duration-300 z-50"
       size="icon"
       aria-label="Enter Grab & Go mode"
     >
