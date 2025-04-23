@@ -12,9 +12,10 @@ import RecipeGenerator from '@/components/recipes/RecipeGenerator';
 import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
 import { Button } from '@/components/ui/button';
 import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } from '@/services/mealDbService';
-import OnboardingSteps from '@/components/recipes/OnboardingSteps';
-import LoadingAnimation from '@/components/recipes/LoadingAnimation';
-import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
+import OnboardingScreen from '@/components/recipes/OnboardingScreen';
+import RecipeSplashScreen from '@/components/recipes/RecipeSplashScreen';
+import MissingIngredientsDialog from '@/components/recipes/MissingIngredientsDialog';
+import RecipeGeneratorContainer from '@/components/recipes/RecipeGeneratorContainer';
 import { Utensils } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -469,36 +470,17 @@ const RecipesPage = () => {
   }, []);
   
   if (showOnboarding) {
-    const step = onboardingSteps[onboardingStep];
     return (
-      <div className="min-h-screen bg-kitchen-cream flex flex-col">
-        <Header
-          title="Welcome to Recipe Ideas"
-          showSettings={false}
-          showBack={true}
-          onBack={handleBack}
-        />
-        <main className="flex-1 px-4 py-6 flex flex-col items-center justify-center">
-          <div className="max-w-lg w-full bg-white rounded-lg shadow p-6">
-            <h2 className="text-2xl font-bold text-center mb-2">{step.title}</h2>
-            <p className="text-center text-gray-600 mb-4">{step.description}</p>
-            <div>{step.content}</div>
-            {onboardingStep > 0 && (
-              <Button
-                onClick={() => setOnboardingStep(onboardingStep - 1)}
-                variant="ghost"
-                className="mt-4"
-              >
-                Back
-              </Button>
-            )}
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <OnboardingScreen
+        onboardingStep={onboardingStep}
+        onboardingSteps={onboardingSteps}
+        setOnboardingStep={setOnboardingStep}
+        setShowOnboarding={setShowOnboarding}
+        handleBack={handleBack}
+      />
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-kitchen-cream flex flex-col">
       <Header 
@@ -507,65 +489,28 @@ const RecipesPage = () => {
         showBack={true} 
         onBack={handleBack} 
       />
-      
       {showSplashScreen ? (
-        <div className="fixed inset-0 bg-white/95 flex items-center justify-center z-50 animate-fade-in">
-          <div className="text-center p-6">
-            <h2 className="text-2xl font-bold mb-4">Welcome to Recipe Ideas!</h2>
-            <p className="text-gray-600 mb-4">
-              Are you confused about what to cook? We can make your life easier!
-            </p>
-            <div className="animate-pulse">
-              <Utensils size={48} className="mx-auto text-kitchen-green" />
-            </div>
-          </div>
-        </div>
+        <RecipeSplashScreen />
       ) : (
         <main className="flex-1 px-4 py-6">
-          <div className="mb-6">
-            <Button
-              onClick={handleToggleGenerator}
-              className="w-full bg-kitchen-green hover:bg-kitchen-green/90 mb-4"
-            >
-              {showGenerator ? "Browse Recipe Ideas" : "Inspirations"}
-            </Button>
-          </div>
-          
+          <RecipeGeneratorContainer
+            showGenerator={showGenerator}
+            setShowGenerator={setShowGenerator}
+            selectedStyle={selectedStyle}
+            setSelectedStyle={handleStyleSelect}
+            generatedRecipe={generatedRecipe}
+            setGeneratedRecipe={setGeneratedRecipe}
+            selectedRecipe={selectedRecipe}
+            setSelectedRecipe={setSelectedRecipe}
+            isGenerating={isGenerating}
+            generateRecipe={generateRecipe}
+            handleTryAnother={handleTryAnother}
+            favoriteRecipes={favoriteRecipes}
+            onToggleFavorite={toggleFavorite}
+          />
           {isLoading ? (
             <LoadingAnimation />
-          ) : showGenerator ? (
-            <div>
-              {selectedRecipe ? (
-                <RecipeDetail
-                  recipe={selectedRecipe}
-                  onTryAnother={handleTryAnother}
-                  kitchenStyle={selectedStyle}
-                  isFavorite={selectedRecipe.id ? favoriteRecipes.includes(selectedRecipe.id) : false}
-                  onToggleFavorite={() => selectedRecipe.id && toggleFavorite(selectedRecipe.id)}
-                />
-              ) : generatedRecipe ? (
-                <RecipeDetail
-                  recipe={generatedRecipe}
-                  onTryAnother={handleTryAnother}
-                  kitchenStyle={selectedStyle}
-                  isFavorite={generatedRecipe.id ? favoriteRecipes.includes(generatedRecipe.id) : false}
-                  onToggleFavorite={() => generatedRecipe.id && toggleFavorite(generatedRecipe.id)}
-                />
-              ) : (
-                <>
-                  <KitchenStyleSelector
-                    selectedStyle={selectedStyle}
-                    onSelect={handleStyleSelect}
-                  />
-                  <RecipeGenerator
-                    onGenerate={generateRecipe}
-                    isGenerating={isGenerating}
-                    kitchenStyle={selectedStyle}
-                  />
-                </>
-              )}
-            </div>
-          ) : (
+          ) : !showGenerator ? (
             <>
               {!isLoading && recipes.length > 0 && (
                 <FavoriteRecipesManager
@@ -595,43 +540,24 @@ const RecipesPage = () => {
                 />
               )}
             </>
-          )}
+          ) : null}
         </main>
       )}
 
-      <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Missing Ingredients</DialogTitle>
-            <DialogDescription>
-              Would you like to add these items to your shopping list?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {missingIngredients.map((ingredient, index) => (
-              <div key={index} className="flex items-center gap-2 mb-2">
-                <Checkbox id={`ing-${index}`} />
-                <label htmlFor={`ing-${index}`}>{ingredient}</label>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMissingDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => {
-              toast({
-                title: "Added to shopping list",
-                description: "Selected ingredients have been added to your list",
-              });
-              setShowMissingDialog(false);
-            }}>
-              Add to Shopping List
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
+      <MissingIngredientsDialog
+        open={showMissingDialog}
+        onOpenChange={setShowMissingDialog}
+        missingIngredients={missingIngredients}
+        selectedIngredients={selectedIngredients}
+        setSelectedIngredients={setSelectedIngredients}
+        onAddToList={() => {
+          toast({
+            title: "Added to shopping list",
+            description: "Selected ingredients have been added to your list",
+          });
+          setShowMissingDialog(false);
+        }}
+      />
       <Footer />
     </div>
   );
