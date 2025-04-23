@@ -18,6 +18,8 @@ import MissingIngredientsDialog from '@/components/recipes/MissingIngredientsDia
 import RecipeGeneratorContainer from '@/components/recipes/RecipeGeneratorContainer';
 import { Utensils } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import LoadingAnimation from '@/components/recipes/LoadingAnimation';
+import FavoriteRecipesManager from '@/components/recipes/FavoriteRecipesManager';
 import {
   Dialog,
   DialogContent,
