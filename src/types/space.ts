@@ -15,6 +15,8 @@ export interface SpaceTask {
   name: string;
   completed: boolean;
   dueDate?: Date;
+  notes?: string;
+  assignee?: string;
 }
 
 export interface Space {
