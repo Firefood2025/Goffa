@@ -17,6 +17,7 @@ import FamilyPage from "./pages/FamilyPage";
 import ReferPage from "./pages/ReferPage";
 import SpacesPage from "./pages/SpacesPage";
 import SpaceDetailPage from "./pages/SpaceDetailPage";
+import RentChefPage from "./pages/RentChefPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/pantry" element={<PantryPage />} />
             <Route path="/recipes" element={<RecipesPage />} />
+            <Route path="/rent-chef" element={<RentChefPage />} />
             <Route path="/shopping-list" element={<ShoppingListPage />} />
             <Route path="/grab-and-go" element={<GrabAndGoPage />} />
             <Route path="/settings" element={<SettingsPage />} />

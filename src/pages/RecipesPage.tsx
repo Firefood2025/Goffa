@@ -1,544 +1,178 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@supabase/supabase-js';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
-import RecipeGeneratorContainer from '@/components/recipes/RecipeGeneratorContainer';
-import OnboardingScreen from '@/components/recipes/OnboardingScreen';
-import RecipeSplashScreen from '@/components/recipes/RecipeSplashScreen';
-import MissingIngredientsDialog from '@/components/recipes/MissingIngredientsDialog';
-import { Utensils } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { searchRecipesByIngredients, searchRecipesByCuisine, getRecipeDetails } from '@/services/mealDbService';
-import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/KitchenStyleSelector';
-import { Cuisine } from '@/components/recipes/CuisineSelector';
-import { RecipeData } from '@/components/recipes/RecipeCard';
-import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import RecipeLoadingSection from '@/components/recipes/RecipeLoadingSection';
+import { ListLayout, ViewMode } from '@/components/ui/list-layout';
+import RecipeCard, { RecipeData } from '@/components/recipes/RecipeCard';
+import CuisineSelector, { Cuisine } from '@/components/recipes/CuisineSelector';
+import { Button } from "@/components/ui/button";
+import { ChefHat } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-let supabase = null;
-try {
-  if (supabaseUrl && supabaseAnonKey) {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-    console.log("Supabase client initialized successfully");
-  } else {
-    console.log("Supabase environment variables not found");
+// Mock recipe data
+const mockRecipes: RecipeData[] = [
+  {
+    id: '1',
+    title: 'Spaghetti Carbonara',
+    image: 'https://source.unsplash.com/random/800x600/?pasta,carbonara',
+    cookTime: 25,
+    ingredients: ['pasta', 'eggs', 'bacon', 'parmesan', 'black pepper'],
+    matchingIngredients: 3,
+    difficulty: 'Easy',
+    cuisine: 'Italian'
+  },
+  {
+    id: '2',
+    title: 'Chicken Tikka Masala',
+    image: 'https://source.unsplash.com/random/800x600/?chicken,tikka',
+    cookTime: 45,
+    ingredients: ['chicken', 'yogurt', 'tomatoes', 'onion', 'garlic', 'ginger', 'spices'],
+    matchingIngredients: 4,
+    difficulty: 'Medium',
+    cuisine: 'Oriental'
+  },
+  {
+    id: '3',
+    title: 'Ratatouille',
+    image: 'https://source.unsplash.com/random/800x600/?ratatouille',
+    cookTime: 60,
+    ingredients: ['eggplant', 'zucchini', 'bell peppers', 'tomatoes', 'onion', 'garlic', 'herbs'],
+    matchingIngredients: 5,
+    difficulty: 'Medium',
+    cuisine: 'French'
+  },
+  {
+    id: '4',
+    title: 'Couscous',
+    image: 'https://source.unsplash.com/random/800x600/?couscous',
+    cookTime: 40,
+    ingredients: ['couscous', 'vegetables', 'chickpeas', 'lamb', 'spices'],
+    matchingIngredients: 2,
+    difficulty: 'Medium',
+    cuisine: 'Tunisian'
+  },
+  {
+    id: '5',
+    title: 'Margherita Pizza',
+    image: 'https://source.unsplash.com/random/800x600/?pizza',
+    cookTime: 30,
+    ingredients: ['flour', 'tomatoes', 'mozzarella', 'basil', 'olive oil'],
+    matchingIngredients: 3,
+    difficulty: 'Easy',
+    cuisine: 'Italian'
+  },
+  {
+    id: '6',
+    title: 'Beef Bourguignon',
+    image: 'https://source.unsplash.com/random/800x600/?beef,stew',
+    cookTime: 180,
+    ingredients: ['beef', 'red wine', 'carrots', 'onions', 'mushrooms', 'bacon', 'herbs'],
+    matchingIngredients: 4,
+    difficulty: 'Hard',
+    cuisine: 'French'
   }
-} catch (error) {
-  console.error("Error initializing Supabase client:", error);
-}
+];
 
-const RecipesPage = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>('All');
-  const [recipes, setRecipes] = useState<RecipeData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [favoriteRecipes, setFavoriteRecipes] = useState<string[]>([]);
-  
-  const [showGenerator, setShowGenerator] = useState(false);
-  const [selectedStyle, setSelectedStyle] = useState<KitchenStyle>('All');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
-  const [selectedRecipe, setSelectedRecipe] = useState<GeneratedRecipe | null>(null);
-  
-  const [onboardingStep, setOnboardingStep] = useState(0);
-  const [firstTimeVisit, setFirstTimeVisit] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showSplashScreen, setShowSplashScreen] = useState(true);
-  const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
-  const [showMissingDialog, setShowMissingDialog] = useState(false);
-  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+// Component for recipe generation
+const RecipeGeneratorContainer = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 className="text-xl font-bold mb-4">Generate Recipe from Ingredients</h2>
+      <p className="text-gray-600 mb-4">
+        Let us suggest recipes based on what you have in your pantry.
+      </p>
+      <Button className="bg-kitchen-green hover:bg-kitchen-green/90">
+        Generate Recipes
+      </Button>
+    </div>
+  );
+};
 
-  const onboardingSteps = [
-    {
-      title: "Choose Kitchen Style",
-      description: "Pick a style that inspires your recipes.",
-      content: (
-        <KitchenStyleSelector
-          selectedStyle={selectedStyle}
-          onSelect={style => {
-            setSelectedStyle(style);
-            setOnboardingStep(1);
-          }}
-        />
-      ),
-    },
-    {
-      title: "Scan Pantry Items",
-      description: "Import and confirm your pantry items for personalized recipe matches.",
-      content: (
-        <Button 
-          onClick={() => setOnboardingStep(2)}
-          className="bg-kitchen-green w-full"
-        >
-          Continue with Pantry Import
-        </Button>
-      ),
-    },
-    {
-      title: "Get Recipe Suggestions",
-      description: "Let AI (or your pantry) suggest delicious recipes customized for you.",
-      content: (
-        <Button
-          onClick={() => setShowOnboarding(false)}
-          className="bg-kitchen-green w-full"
-        >
-          Finish & View Recipes
-        </Button>
-      ),
-    },
-  ];
+// Component for favorite recipes
+const FavoriteRecipesManager = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 className="text-xl font-bold mb-4">Favorite Recipes</h2>
+      <p className="text-gray-600">
+        You haven't saved any favorite recipes yet. Click the heart icon on recipes to save them here.
+      </p>
+    </div>
+  );
+};
 
-  useEffect(() => {
-    const hasVisitedBefore = localStorage.getItem('hasVisitedRecipesPage');
-    if (!hasVisitedBefore) {
-      setShowOnboarding(true);
-      localStorage.setItem('hasVisitedRecipesPage', 'true');
-    } else {
-      setFirstTimeVisit(false);
-    }
-    
-    const storedFavorites = localStorage.getItem('favoriteRecipes');
-    if (storedFavorites) {
-      setFavoriteRecipes(JSON.parse(storedFavorites));
-    }
-  }, []);
+// Component for recipe list
+const RecipeList = ({ 
+  recipes, 
+  viewMode,
+  loading = false,
+  error = null
+}: { 
+  recipes: RecipeData[], 
+  viewMode: ViewMode,
+  loading?: boolean,
+  error?: string | null
+}) => {
+  if (loading) {
+    return <div className="text-center py-10">Loading recipes...</div>;
+  }
 
-  useEffect(() => {
-    const hasSeenSplash = localStorage.getItem('hasSeenRecipeSplash');
-    if (hasSeenSplash) {
-      setShowSplashScreen(false);
-    } else {
-      setTimeout(() => {
-        setShowSplashScreen(false);
-        localStorage.setItem('hasSeenRecipeSplash', 'true');
-      }, 3000);
-    }
-  }, []);
-  
-  const handleFilterClick = () => {
-    toast({
-      title: "Filter Options",
-      description: "Recipe filtering options would appear here",
-      duration: 3000,
-    });
-  };
-  
-  const handleCuisineSelect = async (cuisine: Cuisine) => {
-    setSelectedCuisine(cuisine);
-    setIsLoading(true);
-    try {
-      if (cuisine === 'All') {
-        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice'];
-        if (supabase) {
-          try {
-            const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
-            if (pantryItems && pantryItems.length > 0) {
-              ingredients = pantryItems.map(item => item.name);
-            }
-          } catch (error) {
-            console.error("Error fetching pantry items:", error);
-          }
-        }
-        const apiRecipes = await searchRecipesByIngredients(ingredients);
-        setRecipes(apiRecipes);
-      } else {
-        const apiRecipes = await searchRecipesByCuisine(cuisine);
-        setRecipes(apiRecipes);
-      }
-    } catch (error) {
-      console.error('Error fetching recipes:', error);
-      toast({
-        title: "Couldn't fetch recipes",
-        description: "Please try again later",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleStyleSelect = (style: KitchenStyle) => {
-    setSelectedStyle(style);
-    setGeneratedRecipe(null);
-  };
+  if (error) {
+    return <div className="text-center py-10 text-red-500">{error}</div>;
+  }
 
-  const handleImportFromPantry = async () => {
-    if (!supabase) {
-      toast({
-        title: "Cannot access pantry",
-        description: "Database connection not available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data: pantryItems } = await supabase
-        .from('pantry_items')
-        .select('name')
-        .neq('name', 'Pork');  // Exclude pork from results
-      
-      if (pantryItems && pantryItems.length > 0) {
-        let ingredients: string[] = pantryItems.map(item => item.name);
-        ingredients = ingredients.filter(item => item !== 'Pork');
-        const currentIngredients = new Set(selectedIngredients);
-        const newIngredients = ingredients.filter(ing => !currentIngredients.has(ing));
-        
-        setSelectedIngredients(prev => [...prev, ...newIngredients]);
-        
-        toast({
-          title: "Pantry items imported",
-          description: `Added ${newIngredients.length} new ingredients from your pantry`,
-        });
-      } else {
-        toast({
-          title: "No items found",
-          description: "Your pantry is empty",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error importing items",
-        description: "Could not fetch pantry items",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const findMissingIngredients = (recipe: GeneratedRecipe) => {
-    const recipeIngredients = recipe.ingredients || [];
-    const pantryIngredients = selectedIngredients;
-    return recipeIngredients.filter(ing => 
-      !pantryIngredients.includes(ing) && ing.toLowerCase() !== 'pork'
-    );
-  };
-  
-  const generateRecipe = async (ingredients: string[]) => {
-    setIsGenerating(true);
-    try {
-      const apiRecipes = await searchRecipesByIngredients(ingredients);
-      if (apiRecipes.length > 0) {
-        const idx = Math.floor(Math.random() * apiRecipes.length);
-        const selectedApiRecipe = apiRecipes[idx];
-        const recipeDetails = await getRecipeDetails(selectedApiRecipe.id);
-        if (recipeDetails) {
-          const generatedRecipeData: GeneratedRecipe = {
-            id: recipeDetails.id,
-            title: recipeDetails.title,
-            cookTime: recipeDetails.cookTime,
-            ingredients: recipeDetails.ingredients,
-            measurements: recipeDetails.measurements,
-            steps: recipeDetails.steps,
-            image: recipeDetails.image,
-            cuisine: recipeDetails.cuisine,
-            category: recipeDetails.category,
-            tags: recipeDetails.tags,
-            nutrition: {
-              calories: Math.floor(Math.random() * 400) + 200,
-              protein: Math.floor(Math.random() * 20) + 10,
-              carbs: Math.floor(Math.random() * 30) + 20,
-              fat: Math.floor(Math.random() * 15) + 5,
-            },
-            tagline: `A delicious ${recipeDetails.cuisine || selectedStyle} recipe with your selected ingredients!`
-          };
-          
-          const missing = findMissingIngredients(generatedRecipeData);
-          setMissingIngredients(missing);
-          if (missing.length > 0) {
-            setShowMissingDialog(true);
-          }
-          setGeneratedRecipe(generatedRecipeData);
-          toast({
-            title: "Recipe Created!",
-            description: "Your custom recipe is ready",
-            duration: 3000,
-          });
-          return;
-        }
-      }
-      
-      if (supabaseUrl) {
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/getRecipeSuggestions`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${supabaseAnonKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              ingredients,
-              cuisine: selectedStyle === "All" ? undefined : selectedStyle,
-              detailed: true,
-            }),
-          }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          if (data.recipes && data.recipes.length > 0) {
-            const recipe = data.recipes[0];
-            setGeneratedRecipe({
-              id: recipe.id,
-              title: recipe.title,
-              cookTime: recipe.cookTime,
-              ingredients: recipe.ingredients,
-              steps: recipe.steps,
-              image: recipe.image,
-              nutrition: recipe.nutrition,
-              tagline: recipe.tagline,
-            });
-            toast({
-              title: "AI Recipe Created!",
-              description: "Your custom recipe is ready",
-              duration: 3000,
-            });
-            return;
-          }
-        }
-      }
-      toast({
-        title: "No recipe found",
-        description: "Couldn't generate a recipe. Try more ingredients.",
-        variant: "destructive",
-      });
-    } catch (error) {
-      toast({
-        title: "Error generating recipe",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-  
-  const handleRecipeClick = async (id: string) => {
-    setIsLoading(true);
-    try {
-      const recipeDetails = await getRecipeDetails(id);
-      
-      if (recipeDetails) {
-        setSelectedRecipe({
-          id: recipeDetails.id,
-          title: recipeDetails.title,
-          cookTime: recipeDetails.cookTime,
-          ingredients: recipeDetails.ingredients,
-          measurements: recipeDetails.measurements,
-          steps: recipeDetails.steps,
-          image: recipeDetails.image,
-          tagline: recipeDetails.cuisine 
-            ? `Authentic ${recipeDetails.cuisine} cuisine` 
-            : 'Delicious recipe to try today!',
-          cuisine: recipeDetails.cuisine,
-          category: recipeDetails.category,
-          tags: recipeDetails.tags
-        });
-        
-        setShowGenerator(true);
-      } else {
-        toast({
-          title: "Recipe not found",
-          description: "Could not load recipe details",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching recipe details:', error);
-      toast({
-        title: "Error fetching recipe",
-        description: "Could not load recipe details",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleBack = () => {
-    navigate('/');
-  };
-  
-  const handleToggleGenerator = () => {
-    setShowGenerator(!showGenerator);
-    if (!showGenerator) {
-      setGeneratedRecipe(null);
-      setSelectedRecipe(null);
-    }
-  };
-  
-  const handleTryAnother = () => {
-    setGeneratedRecipe(null);
-    setSelectedRecipe(null);
-  };
-  
-  const toggleFavorite = (recipeId: string) => {
-    let updatedFavorites;
-    if (favoriteRecipes.includes(recipeId)) {
-      updatedFavorites = favoriteRecipes.filter(id => id !== recipeId);
-    } else {
-      updatedFavorites = [...favoriteRecipes, recipeId];
-    }
-    setFavoriteRecipes(updatedFavorites);
-    localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
-    
-    toast({
-      title: favoriteRecipes.includes(recipeId) ? "Removed from favorites" : "Added to favorites",
-      description: favoriteRecipes.includes(recipeId) 
-        ? "Recipe removed from your favorites" 
-        : "Recipe added to your favorites",
-      duration: 2000,
-    });
-  };
-  
-  const deleteRecipe = (recipeId: string) => {
-    setRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
-    
-    if (favoriteRecipes.includes(recipeId)) {
-      toggleFavorite(recipeId);
-    }
-    
-    toast({
-      title: "Recipe deleted",
-      description: "Recipe has been removed from your list",
-      duration: 2000,
-    });
-  };
-  
-  const completeOnboarding = () => {
-    setShowOnboarding(false);
-    setFirstTimeVisit(false);
-  };
-  
-  useEffect(() => {
-    const fetchInitialRecipes = async () => {
-      setIsLoading(true);
-      try {
-        let ingredients = ['chicken', 'onion', 'garlic', 'tomato', 'rice'];
-        if (supabase) {
-          try {
-            const { data: pantryItems } = await supabase.from('pantry_items').select('name').limit(10);
-            if (pantryItems && pantryItems.length > 0) {
-              ingredients = pantryItems.map(item => item.name);
-            }
-          } catch (error) {
-            console.error("Error fetching pantry items:", error);
-          }
-        }
-        const apiRecipes = await searchRecipesByIngredients(ingredients);
-        if (apiRecipes.length > 0) {
-          setRecipes(apiRecipes);
-        } else {
-          const defaultRecipes = await searchRecipesByCuisine('Italian');
-          setRecipes(defaultRecipes);
-        }
-      } catch (error) {
-        console.error('Error fetching initial recipes:', error);
-        try {
-          const defaultRecipes = await searchRecipesByCuisine('Italian');
-          setRecipes(defaultRecipes);
-        } catch (fallbackError) {
-          console.error('Error fetching fallback recipes:', fallbackError);
-          toast({
-            title: "Couldn't load recipes",
-            description: "Please check your internet connection and try again",
-            variant: "destructive",
-          });
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialRecipes();
-  }, []);
-  
-  if (showOnboarding) {
-    return (
-      <OnboardingScreen
-        onboardingStep={onboardingStep}
-        onboardingSteps={onboardingSteps}
-        setOnboardingStep={setOnboardingStep}
-        setShowOnboarding={setShowOnboarding}
-        handleBack={handleBack}
-      />
-    );
+  if (recipes.length === 0) {
+    return <div className="text-center py-10">No recipes found. Try changing your filters.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-kitchen-cream flex flex-col">
-      <Header 
-        title="Recipe Ideas"
-        showSettings={false} 
-        showBack={true} 
-        onBack={handleBack} 
-      />
-      {showSplashScreen ? (
-        <RecipeSplashScreen />
-      ) : (
-        <main className="flex-1 px-4 py-6">
-          <RecipeGeneratorContainer
-            showGenerator={showGenerator}
-            setShowGenerator={setShowGenerator}
-            selectedStyle={selectedStyle}
-            setSelectedStyle={handleStyleSelect}
-            generatedRecipe={generatedRecipe}
-            setGeneratedRecipe={setGeneratedRecipe}
-            selectedRecipe={selectedRecipe}
-            setSelectedRecipe={setSelectedRecipe}
-            isGenerating={isGenerating}
-            generateRecipe={generateRecipe}
-            handleTryAnother={handleTryAnother}
-            favoriteRecipes={favoriteRecipes}
-            onToggleFavorite={toggleFavorite}
-          />
-          {!showGenerator && (
-            <RecipeLoadingSection
-              isLoading={isLoading}
-              recipes={recipes}
-              favoriteRecipes={favoriteRecipes}
-              selectedCuisine={selectedCuisine}
-              handleCuisineSelect={handleCuisineSelect}
-              handleFilterClick={handleFilterClick}
-              handleRecipeClick={handleRecipeClick}
-              toggleFavorite={toggleFavorite}
-              deleteRecipe={deleteRecipe}
-            />
-          )}
-        </main>
-      )}
-
-      <MissingIngredientsDialog
-        open={showMissingDialog}
-        onOpenChange={setShowMissingDialog}
-        missingIngredients={missingIngredients}
-        selectedIngredients={selectedIngredients}
-        setSelectedIngredients={setSelectedIngredients}
-        onAddToList={() => {
-          toast({
-            title: "Added to shopping list",
-            description: "Selected ingredients have been added to your list",
-          });
-          setShowMissingDialog(false);
-        }}
-      />
-      <Footer />
+    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+      {recipes.map(recipe => (
+        <RecipeCard 
+          key={recipe.id} 
+          recipe={recipe} 
+          onClick={(id) => console.log(`Recipe clicked: ${id}`)}
+          onToggleFavorite={(id) => console.log(`Toggle favorite: ${id}`)}
+        />
+      ))}
     </div>
+  );
+};
+
+const RecipesPage = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>('All');
+  const [recipes, setRecipes] = useState<RecipeData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Simulate API call
+    setLoading(true);
+    setTimeout(() => {
+      setRecipes(mockRecipes);
+      setLoading(false);
+    }, 500);
+  }, []);
+
+  // Filter recipes by cuisine
+  const filteredRecipes = selectedCuisine === 'All' 
+    ? recipes 
+    : recipes.filter(recipe => recipe.cuisine === selectedCuisine);
+
+  return (
+    <main className="flex-1 px-4 py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Recipes</h1>
+        <Button asChild className="bg-kitchen-green hover:bg-kitchen-green/90">
+          <Link to="/rent-chef" className="flex items-center gap-2">
+            <ChefHat size={18} />
+            Rent a Chef
+          </Link>
+        </Button>
+      </div>
+
+      <RecipeGeneratorContainer />
+      <FavoriteRecipesManager />
+      <CuisineSelector selectedCuisine={selectedCuisine} onSelect={setSelectedCuisine} />
+      <RecipeList recipes={filteredRecipes} viewMode={viewMode} loading={loading} error={error} />
+    </main>
   );
 };
 
