@@ -1,7 +1,7 @@
 
-import { SpaceTemplate } from '@/types/space';
+import { SpaceTemplateItem } from '@/types/space';
 
-export const spaceTemplates: SpaceTemplate[] = [
+export const spaceTemplates: SpaceTemplateItem[] = [
   {
     id: 'kitchen',
     name: 'Kitchen',

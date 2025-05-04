@@ -1,7 +1,7 @@
 
 import { LucideIcon } from "lucide-react";
 
-export type SpaceTemplate = 
+export type SpaceTemplateType = 
   | 'kitchen'
   | 'home-office' 
   | 'dining-room' 
@@ -23,14 +23,14 @@ export interface Space {
   description?: string;
   icon: string;
   color: string;
-  template: SpaceTemplate;
+  template: SpaceTemplateType;
   tasks: SpaceTask[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface SpaceTemplate {
-  id: SpaceTemplate;
+export interface SpaceTemplateItem {
+  id: SpaceTemplateType;
   name: string;
   description: string;
   icon: string;

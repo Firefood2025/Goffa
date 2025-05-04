@@ -2,11 +2,12 @@
 import React from 'react';
 import { 
   Home, 
-  OfficeChair, 
-  DiningTable, 
-  Laundry, 
-  Yacht, 
-  Tree,
+  ChevronRight,
+  Tablet,
+  Utensils,
+  Shirt,
+  Ship,
+  PalmtreeIcon,
   Building,
   LucideIcon,
   LucideProps 
@@ -14,11 +15,11 @@ import {
 
 const icons: Record<string, LucideIcon> = {
   'home': Home,
-  'office-chair': OfficeChair,
-  'dining-table': DiningTable,
-  'laundry': Laundry,
-  'yacht': Yacht,
-  'tree': Tree,
+  'office-chair': ChevronRight,
+  'dining-table': Utensils,
+  'laundry': Shirt,
+  'yacht': Ship,
+  'tree': PalmtreeIcon,
   'building': Building,
 };
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -13,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DynamicIcon } from './DynamicIcon';
-import { SpaceTemplate, Space } from '@/types/space';
+import { SpaceTemplateItem, SpaceTemplateType, Space } from '@/types/space';
 import { cn } from '@/lib/utils';
 import { spaceTemplates } from '@/lib/space-templates';
 
@@ -29,7 +28,7 @@ const CreateSpaceDialog: React.FC<CreateSpaceDialogProps> = ({
   onCreateSpace,
 }) => {
   const [activeTab, setActiveTab] = useState<'template' | 'custom'>('template');
-  const [selectedTemplate, setSelectedTemplate] = useState<SpaceTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<SpaceTemplateItem | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('home');
@@ -53,7 +52,7 @@ const CreateSpaceDialog: React.FC<CreateSpaceDialogProps> = ({
     { value: 'yellow', label: 'Yellow' },
   ];
   
-  const handleTemplateSelect = (template: SpaceTemplate) => {
+  const handleTemplateSelect = (template: SpaceTemplateItem) => {
     setSelectedTemplate(template);
     setName(template.name);
     setDescription(template.description);
