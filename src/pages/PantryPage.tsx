@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, ListFilter, ShoppingCart } from 'lucide-react';
@@ -295,32 +294,32 @@ const PantryPage = () => {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Moved CustomLists to the top */}
+          <div className="mb-6">
+            <CustomLists
+              lists={customLists}
+              pantryItems={pantryItems}
+              onCreateList={handleCreateList}
+              onDeleteList={handleDeleteList}
+              onRenameList={handleRenameList}
+              onRemoveFromList={handleRemoveFromList}
+            />
+          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <PantryList
-                items={filteredItems}
-                onIncrement={handleIncrement}
-                onDecrement={handleDecrement}
-                onDelete={handleDelete}
-                onAddNew={handleAddNew}
-                customLists={customLists}
-                onAddToList={handleAddToList}
-                selectedItems={selectedItems}
-                onToggleSelectItem={handleToggleSelectItem}
-              />
-            </div>
-            
-            <div className="lg:col-span-1">
-              <CustomLists
-                lists={customLists}
-                pantryItems={pantryItems}
-                onCreateList={handleCreateList}
-                onDeleteList={handleDeleteList}
-                onRenameList={handleRenameList}
-                onRemoveFromList={handleRemoveFromList}
-              />
-            </div>
+          {/* Pantry List now takes full width */}
+          <div>
+            <PantryList
+              items={filteredItems}
+              onIncrement={handleIncrement}
+              onDecrement={handleDecrement}
+              onDelete={handleDelete}
+              onAddNew={handleAddNew}
+              customLists={customLists}
+              onAddToList={handleAddToList}
+              selectedItems={selectedItems}
+              onToggleSelectItem={handleToggleSelectItem}
+            />
           </div>
         </div>
       </main>
