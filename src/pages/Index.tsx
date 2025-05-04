@@ -8,11 +8,14 @@ import Footer from '@/components/layout/Footer';
 import ActionTile from '@/components/home/ActionTile';
 import ExpiringSoonSection from '@/components/home/ExpiringSoonSection';
 import FloatingGrabAndGoButton from '@/components/home/FloatingGrabAndGoButton';
+import SpaceQuickAccess from '@/components/spaces/SpaceQuickAccess';
 
 import { getExpiringSoonItems } from '@/lib/data';
+import { useSpaces } from '@/hooks/use-spaces';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { spaces } = useSpaces();
   const expiringSoonItems = getExpiringSoonItems(7);
   
   return (
@@ -24,6 +27,8 @@ const Index = () => {
           <h2 className="text-2xl font-bold font-heading text-kitchen-dark">Hello, Chef!</h2>
           <p className="text-gray-600">What would you like to do today?</p>
         </div>
+        
+        {spaces.length > 0 && <SpaceQuickAccess spaces={spaces} />}
         
         <div className="grid grid-cols-2 gap-4 mb-6">
           <ActionTile

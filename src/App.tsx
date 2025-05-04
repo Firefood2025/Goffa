@@ -15,6 +15,7 @@ import ProfilePage from "./pages/ProfilePage";
 import LoyaltyCardsPage from "./pages/LoyaltyCardsPage";
 import FamilyPage from "./pages/FamilyPage";
 import ReferPage from "./pages/ReferPage";
+import SpacesPage from "./pages/SpacesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/loyalty-cards" element={<LoyaltyCardsPage />} />
             <Route path="/family" element={<FamilyPage />} />
             <Route path="/refer" element={<ReferPage />} />
+            <Route path="/spaces" element={<SpacesPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
