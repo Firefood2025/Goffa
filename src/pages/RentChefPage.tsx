@@ -8,10 +8,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CalendarIcon, Clock, DollarSign } from 'lucide-react';
+import { CalendarIcon, Clock, DollarSign, ArrowLeft } from 'lucide-react';
 import { ChefGallery } from '@/components/chef/ChefGallery';
 import { useToast } from '@/hooks/use-toast';
 import { ChefBookingForm } from '@/components/chef/ChefBookingForm';
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type ChefCategory = 'breakfast' | 'lunch' | 'dinner' | 'dessert' | 'event' | 'all';
 export type ChefStyle = 'Mexican' | 'Italian' | 'Healthy' | 'Mediterranean' | 'Asian' | 'Meal Prep' | 'Brunch' | 'all';
@@ -24,6 +28,8 @@ const RentChefPage = () => {
   const [time, setTime] = useState<string>("12:00");
   const [showGallery, setShowGallery] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const timeSlots = [
     "08:00", "09:00", "10:00", "11:00", "12:00", 
@@ -61,126 +67,138 @@ const RentChefPage = () => {
     (selectedStyle === 'all' || chef.styles.includes(selectedStyle))
   );
 
+  const handleBack = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="container mx-auto py-8">
-      <div className="relative py-12 mb-8 bg-kitchen-green/90 rounded-lg shadow-lg overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <img 
-            src="https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
-            alt="Chef background"
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <div className="relative text-center text-white px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Rent a Chef</h1>
-          <p className="text-xl opacity-90 max-w-2xl mx-auto">
-            Bring restaurant-quality dining to your home with our professional chefs
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-kitchen-cream flex flex-col">
+      <Header showBack title="Rent a Chef" onBack={handleBack} />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <Card className="mb-6 shadow-md">
-            <CardHeader className="pb-2">
-              <h2 className="text-2xl font-bold">Available Chefs</h2>
-            </CardHeader>
-            <CardContent>
-              <ChefFilter 
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                selectedStyle={selectedStyle}
-                onStyleChange={setSelectedStyle}
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                {filteredChefs.map((chef) => (
-                  <ChefCard
-                    key={chef.id}
-                    chef={chef}
-                    onBookNow={() => handleBooking(chef)}
-                    onViewGallery={() => {
-                      setSelectedChef(chef);
-                      setShowGallery(true);
-                    }}
-                  />
-                ))}
-                {filteredChefs.length === 0 && (
-                  <p className="text-center col-span-2 py-10 text-gray-500">
-                    No chefs available with the selected filters.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+      <div className="container mx-auto px-4 py-6 mb-16 flex-1">
+        <div className="relative py-8 sm:py-12 mb-6 sm:mb-8 bg-kitchen-green/90 rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute inset-0 opacity-20">
+            <img 
+              src="https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
+              alt="Chef background"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="relative text-center text-white px-4">
+            <h1 className="text-3xl md:text-5xl font-bold mb-2 sm:mb-4">Rent a Chef</h1>
+            <p className="text-lg sm:text-xl opacity-90 max-w-2xl mx-auto">
+              Bring restaurant-quality dining to your home with our professional chefs
+            </p>
+          </div>
         </div>
         
-        <div>
-          <Card className="sticky top-24 shadow-md">
-            <CardHeader className="pb-2 bg-muted/30">
-              <h2 className="text-xl font-semibold">Book a Chef</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Select Date
-                  </label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                        disabled={(date) => date < new Date()}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+          <div className="lg:col-span-2">
+            <Card className="mb-6 shadow-md">
+              <CardHeader className="pb-2">
+                <h2 className="text-xl sm:text-2xl font-bold">Available Chefs</h2>
+              </CardHeader>
+              <CardContent>
+                <ChefFilter 
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={setSelectedCategory}
+                  selectedStyle={selectedStyle}
+                  onStyleChange={setSelectedStyle}
+                />
                 
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Select Time
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {timeSlots.map((slot) => (
-                      <Button
-                        key={slot}
-                        variant={time === slot ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTime(slot)}
-                        className={time === slot ? "bg-kitchen-green hover:bg-kitchen-green/90" : ""}
-                      >
-                        <Clock className="mr-1 h-4 w-4" />
-                        {slot}
-                      </Button>
-                    ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                  {filteredChefs.map((chef) => (
+                    <ChefCard
+                      key={chef.id}
+                      chef={chef}
+                      onBookNow={() => handleBooking(chef)}
+                      onViewGallery={() => {
+                        setSelectedChef(chef);
+                        setShowGallery(true);
+                      }}
+                    />
+                  ))}
+                  {filteredChefs.length === 0 && (
+                    <p className="text-center col-span-1 sm:col-span-2 py-10 text-gray-500">
+                      No chefs available with the selected filters.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="order-first lg:order-none mb-6 lg:mb-0">
+            <Card className="sticky top-24 shadow-md">
+              <CardHeader className="pb-2 bg-muted/30">
+                <h2 className="text-lg sm:text-xl font-semibold">Book a Chef</h2>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Select Date
+                    </label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date ? format(date, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={setDate}
+                          initialFocus
+                          className="pointer-events-auto"
+                          disabled={(date) => date < new Date()}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Select Time
+                    </label>
+                    <div className={isMobile ? "grid grid-cols-4 gap-2" : "grid grid-cols-3 gap-2"}>
+                      {timeSlots.map((slot) => (
+                        <Button
+                          key={slot}
+                          variant={time === slot ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setTime(slot)}
+                          className={time === slot ? "bg-kitchen-green hover:bg-kitchen-green/90" : ""}
+                        >
+                          {isMobile ? slot : (
+                            <>
+                              <Clock className="mr-1 h-4 w-4" />
+                              {slot}
+                            </>
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <h3 className="font-medium mb-2">Quick Booking Tips:</h3>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Book at least 48 hours in advance</li>
+                      <li>• Chefs bring their own tools</li>
+                      <li>• You can add groceries to the booking</li>
+                      <li>• Prices are per hour</li>
+                    </ul>
                   </div>
                 </div>
-                
-                <div className="pt-4">
-                  <h3 className="font-medium mb-2">Quick Booking Tips:</h3>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Book at least 48 hours in advance</li>
-                    <li>• Chefs bring their own tools</li>
-                    <li>• You can add groceries to the booking</li>
-                    <li>• Prices are per hour</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -200,6 +218,8 @@ const RentChefPage = () => {
           onCancel={() => setSelectedChef(null)}
         />
       )}
+
+      <Footer />
     </div>
   );
 };

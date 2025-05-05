@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Settings, User } from 'lucide-react';
+import { Settings, User, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ 
+  title,
   showSettings = true,
   showBack = false,
   onBack
@@ -22,18 +23,24 @@ const Header: React.FC<HeaderProps> = ({
     navigate('/settings');
   };
 
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
-    <header className="flex items-center justify-between p-4 border-b border-muted">
+    <header className="flex items-center justify-between p-4 border-b border-muted bg-white">
       <div className="flex items-center">
         {showBack && (
           <button 
-            onClick={onBack} 
-            className="mr-3 text-kitchen-dark"
+            onClick={handleBackClick} 
+            className="mr-3 p-1.5 text-kitchen-dark rounded-full hover:bg-muted"
             aria-label="Go back"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
+            <ArrowLeft size={20} />
           </button>
         )}
         <Link to="/" className="flex items-center">
@@ -42,8 +49,10 @@ const Header: React.FC<HeaderProps> = ({
             alt="KOFFA Logo" 
             className="h-10" 
           />
+          {title && <span className="ml-3 text-lg font-semibold hidden sm:inline">{title}</span>}
         </Link>
       </div>
+      {title && <span className="text-lg font-semibold sm:hidden">{title}</span>}
       {showSettings && (
         <div className="flex gap-2">
           <Link to="/profile" className="p-2 rounded-full text-kitchen-dark hover:bg-muted">
