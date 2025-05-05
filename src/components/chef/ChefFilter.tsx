@@ -3,6 +3,7 @@ import React from 'react';
 import { ChefCategory, ChefStyle } from '@/pages/RentChefPage';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Chef, Utensils, Coffee, Salad, Cake, Party } from 'lucide-react';
 
 interface ChefFilterProps {
   selectedCategory: ChefCategory;
@@ -10,6 +11,16 @@ interface ChefFilterProps {
   selectedStyle: ChefStyle;
   onStyleChange: (style: ChefStyle) => void;
 }
+
+// Icon mapping for categories
+const categoryIcons = {
+  all: Chef,
+  breakfast: Coffee,
+  lunch: Utensils,
+  dinner: Utensils,
+  dessert: Cake,
+  event: Party
+};
 
 export const ChefFilter: React.FC<ChefFilterProps> = ({
   selectedCategory,
@@ -20,20 +31,27 @@ export const ChefFilter: React.FC<ChefFilterProps> = ({
   const categories: ChefCategory[] = ['all', 'breakfast', 'lunch', 'dinner', 'dessert', 'event'];
   const styles: ChefStyle[] = ['all', 'Mexican', 'Italian', 'Healthy', 'Mediterranean', 'Asian', 'Meal Prep', 'Brunch'];
   
+  // Helper function to get the icon for a category
+  const getCategoryIcon = (category: ChefCategory) => {
+    const IconComponent = categoryIcons[category] || Chef;
+    return <IconComponent className="mr-1 h-4 w-4" />;
+  };
+  
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-medium mb-2">Categories</h3>
+        <h3 className="text-sm font-medium mb-3 text-gray-700">Meal Categories</h3>
         <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex space-x-2 pb-1">
+          <div className="flex space-x-2 pb-2">
             {categories.map((category) => (
               <Button
                 key={category}
                 size="sm"
                 variant={selectedCategory === category ? "default" : "outline"}
-                className={`capitalize ${selectedCategory === category ? "bg-kitchen-green hover:bg-kitchen-green/90" : ""}`}
+                className={`capitalize ${selectedCategory === category ? "bg-kitchen-green hover:bg-kitchen-green/90" : ""} py-6`}
                 onClick={() => onCategoryChange(category)}
               >
+                {getCategoryIcon(category)}
                 {category}
               </Button>
             ))}
@@ -42,9 +60,9 @@ export const ChefFilter: React.FC<ChefFilterProps> = ({
       </div>
       
       <div>
-        <h3 className="text-sm font-medium mb-2">Culinary Styles</h3>
+        <h3 className="text-sm font-medium mb-3 text-gray-700">Culinary Styles</h3>
         <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex space-x-2 pb-1">
+          <div className="flex flex-wrap gap-2 pb-2">
             {styles.map((style) => (
               <Button
                 key={style}
@@ -53,6 +71,7 @@ export const ChefFilter: React.FC<ChefFilterProps> = ({
                 className={`${selectedStyle === style ? "bg-kitchen-green hover:bg-kitchen-green/90" : ""}`}
                 onClick={() => onStyleChange(style)}
               >
+                <Salad className="mr-1 h-4 w-4" />
                 {style}
               </Button>
             ))}
