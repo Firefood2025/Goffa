@@ -3,7 +3,7 @@ import React from 'react';
 import { ChefCategory, ChefStyle } from '@/pages/RentChefPage';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Chef, Utensils, Coffee, Salad, Cake, Party } from 'lucide-react';
+import { ChefHat, Utensils, Coffee, Salad, Cake, PartyPopper } from 'lucide-react';
 
 interface ChefFilterProps {
   selectedCategory: ChefCategory;
@@ -14,12 +14,12 @@ interface ChefFilterProps {
 
 // Icon mapping for categories
 const categoryIcons = {
-  all: Chef,
+  all: ChefHat,
   breakfast: Coffee,
   lunch: Utensils,
   dinner: Utensils,
   dessert: Cake,
-  event: Party
+  event: PartyPopper
 };
 
 export const ChefFilter: React.FC<ChefFilterProps> = ({
@@ -33,7 +33,7 @@ export const ChefFilter: React.FC<ChefFilterProps> = ({
   
   // Helper function to get the icon for a category
   const getCategoryIcon = (category: ChefCategory) => {
-    const IconComponent = categoryIcons[category] || Chef;
+    const IconComponent = categoryIcons[category] || ChefHat;
     return <IconComponent className="mr-1 h-4 w-4" />;
   };
   
