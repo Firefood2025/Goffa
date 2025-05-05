@@ -5,6 +5,14 @@ import { Chef } from '@/pages/RentChefPage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { motion } from 'framer-motion';
 
 interface ChefGalleryProps {
   chef: Chef;
@@ -38,57 +46,50 @@ export const ChefGallery: React.FC<ChefGalleryProps> = ({ chef, onClose }) => {
         </DialogHeader>
         
         <div className="mt-4">
-          {/* Main image display */}
-          <div className="relative rounded-lg overflow-hidden">
-            <div className="aspect-video relative">
-              <img 
-                src={chef.gallery[activeImage]} 
-                alt={`${chef.name}'s dish ${activeImage + 1}`} 
-                className="w-full h-full object-cover"
-              />
-              
-              {/* Navigation arrows */}
-              <Button 
-                variant="outline"
-                size="icon" 
-                className="absolute top-1/2 left-2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
-                onClick={prevImage}
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </Button>
-              
-              <Button 
-                variant="outline"
-                size="icon" 
-                className="absolute top-1/2 right-2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
-                onClick={nextImage}
-              >
-                <ChevronRight className="h-6 w-6" />
-              </Button>
-              
-              {/* Image counter */}
-              <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-sm">
-                {activeImage + 1} / {chef.gallery.length}
-              </div>
-            </div>
-          </div>
+          {/* Main image display with Carousel */}
+          <Carousel className="w-full">
+            <CarouselContent>
+              {chef.gallery.map((image, index) => (
+                <CarouselItem key={index}>
+                  <div className="relative rounded-lg overflow-hidden">
+                    <div className="aspect-video">
+                      <motion.img 
+                        initial={{ opacity: 0.8, scale: 1.05 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5 }}
+                        src={image} 
+                        alt={`${chef.name}'s dish ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-2" />
+            <CarouselNext className="right-2" />
+          </Carousel>
           
-          {/* Thumbnails */}
+          {/* Thumbnails with active state */}
           <div className="grid grid-cols-4 gap-2 mt-4">
             {chef.gallery.map((image, index) => (
-              <div 
+              <motion.div 
                 key={index} 
-                className={`aspect-video overflow-hidden rounded-md cursor-pointer border-2 ${
-                  activeImage === index ? 'border-kitchen-green' : 'border-transparent'
+                className={`aspect-video overflow-hidden rounded-md cursor-pointer ${
+                  activeImage === index ? 'ring-2 ring-kitchen-green' : 'ring-1 ring-gray-200'
                 }`}
                 onClick={() => setActiveImage(index)}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <img 
                   src={image} 
                   alt={`${chef.name}'s dish ${index + 1} (thumbnail)`} 
-                  className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                  className={`w-full h-full object-cover transition-all duration-300 ${
+                    activeImage === index ? 'brightness-100' : 'brightness-90 hover:brightness-100'
+                  }`}
                 />
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

@@ -9,6 +9,7 @@ import ActionTile from '@/components/home/ActionTile';
 import ExpiringSoonSection from '@/components/home/ExpiringSoonSection';
 import FloatingGrabAndGoButton from '@/components/home/FloatingGrabAndGoButton';
 import SpaceQuickAccess from '@/components/spaces/SpaceQuickAccess';
+import ChefTile from '@/components/home/ChefTile';
 
 import { getExpiringSoonItems } from '@/lib/data';
 import { useSpaces } from '@/hooks/use-spaces';
@@ -29,6 +30,8 @@ const Index = () => {
         </div>
         
         {spaces.length > 0 && <SpaceQuickAccess spaces={spaces} />}
+        
+        <ChefTile />
         
         <div className="grid grid-cols-2 gap-4 mb-6">
           <ActionTile
