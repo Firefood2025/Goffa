@@ -73,6 +73,7 @@ const PantryPage = () => {
     category: 'pantry',
     addedDate: new Date().toISOString(),
   });
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [customLists, setCustomLists] = useState<CustomListType[]>([
