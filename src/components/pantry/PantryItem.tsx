@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Calendar, Minus, Plus, Trash2, MoreHorizontal, Snowflake, Archive, MoveVertical, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -80,15 +79,29 @@ const PantryItem: React.FC<PantryItemProps> = ({
   
   const expiryStatus = getExpiryStatus();
 
-  // Get a placeholder image based on category
+  // Get a placeholder image based on category - fixing potential URI issues
   const getPlaceholderImage = () => {
+    // Using direct string literals instead of potentially problematic URLs
     const categoryImages = {
-      fridge: 'https://images.unsplash.com/photo-1606914469725-e31d7a9fda68?w=800&auto=format&fit=crop',
-      freezer: 'https://images.unsplash.com/photo-1584613862310-82314d5c1531?w=800&auto=format&fit=crop',
-      pantry: 'https://images.unsplash.com/photo-1590311824865-bae8501c2969?w=800&auto=format&fit=crop',
+      fridge: '/lovable-uploads/fridge-placeholder.jpg',
+      freezer: '/lovable-uploads/freezer-placeholder.jpg',
+      pantry: '/lovable-uploads/pantry-placeholder.jpg',
     };
     
-    return item.image || categoryImages[item.category as keyof typeof categoryImages] || 'https://images.unsplash.com/photo-1606914469725-e31d7a9fda68?w=800&auto=format&fit=crop';
+    // If item has an image, ensure it's properly encoded if needed
+    if (item.image) {
+      try {
+        // Check if the URL is valid
+        new URL(item.image);
+        return item.image;
+      } catch (e) {
+        // If URL is invalid, return a fallback
+        console.warn("Invalid image URL detected:", item.image);
+        return categoryImages[item.category as keyof typeof categoryImages] || '/lovable-uploads/default-placeholder.jpg';
+      }
+    }
+    
+    return categoryImages[item.category as keyof typeof categoryImages] || '/lovable-uploads/default-placeholder.jpg';
   };
 
   const getCategoryIcon = () => {

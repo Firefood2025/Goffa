@@ -4,7 +4,8 @@ import App from './App.tsx'
 import './index.css'
 
 // Add a version timestamp to force refresh when app updates
-console.log("App version:", new Date().toISOString());
+// Using a simpler timestamp format to avoid URI encoding issues
+console.log("App version:", new Date().toISOString().replace(/[:.]/g, '-'));
 
 const root = document.getElementById("root");
 
