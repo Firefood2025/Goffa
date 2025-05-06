@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, ShoppingCart, FolderPlus, ListFilter } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from '@/components/ui/badge';
 
 interface PantryActionsProps {
   onAddNew: () => void;
@@ -32,29 +34,44 @@ const PantryActions: React.FC<PantryActionsProps> = ({
   selectedItems = [],
 }) => {
   const [showFilters, setShowFilters] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
-    <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+    <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center sm:justify-start">
       <Button 
         onClick={onAddNew} 
         className="bg-kitchen-green hover:bg-kitchen-green/90"
+        size={isMobile ? "sm" : "default"}
       >
-        <Plus size={18} className="mr-1" /> Add Item
+        <Plus size={isMobile ? 16 : 18} className="mr-1" /> Add Item
       </Button>
+      
       <Button 
         variant="outline" 
         className="border-kitchen-green text-kitchen-green hover:bg-kitchen-green/10"
         onClick={onSendToShopping}
         disabled={selectedItems.length === 0}
+        size={isMobile ? "sm" : "default"}
       >
-        <ShoppingCart size={18} className="mr-1" /> Send to Shopping List
+        <ShoppingCart size={isMobile ? 16 : 18} className="mr-1" /> 
+        <span className="hidden xs:inline">Send to Shopping List</span>
+        <span className="xs:hidden">To Shopping</span>
+        {selectedItems.length > 0 && (
+          <Badge variant="outline" className="ml-1 bg-kitchen-green/20 border-kitchen-green">
+            {selectedItems.length}
+          </Badge>
+        )}
       </Button>
+      
       <Button
         variant="outline"
         className="ml-auto sm:ml-0"
         onClick={() => setShowFilters(true)}
+        size={isMobile ? "sm" : "default"}
       >
-        <ListFilter size={18} className="mr-1" /> Advanced Filters
+        <ListFilter size={isMobile ? 16 : 18} className="mr-1" /> 
+        <span className="hidden xs:inline">Advanced Filters</span>
+        <span className="xs:hidden">Filters</span>
       </Button>
     </div>
   );

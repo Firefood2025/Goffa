@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, ListFilter, ShoppingCart } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Search, ListFilter, ShoppingCart, Image } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import PantryList from '@/components/pantry/PantryList';
+import PantryActions from '@/components/pantry/PantryActions';
 import { PantryItemData } from '@/components/pantry/PantryItem';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +32,6 @@ import {
 } from "@/components/ui/select";
 
 import { mockPantryItems } from '@/lib/data';
-import PantryActions from '@/components/pantry/PantryActions';
 import CustomLists from '@/components/pantry/CustomLists';
 
 export type CustomListType = {
@@ -38,11 +40,26 @@ export type CustomListType = {
   items: string[]; // Array of pantry item IDs
 };
 
+// Default placeholder images for items by category
+const defaultImages = {
+  fridge: 'https://images.unsplash.com/photo-1606914469725-e31d7a9fda68?w=800&auto=format&fit=crop',
+  freezer: 'https://images.unsplash.com/photo-1584613862310-82314d5c1531?w=800&auto=format&fit=crop',
+  pantry: 'https://images.unsplash.com/photo-1590311824865-bae8501c2969?w=800&auto=format&fit=crop',
+};
+
+// Add placeholder images to items that don't have one
+const itemsWithImages = mockPantryItems.map(item => ({
+  ...item,
+  image: item.image || defaultImages[item.category as keyof typeof defaultImages] || defaultImages.pantry
+}));
+
 const PantryPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
   
-  const [pantryItems, setPantryItems] = useState<PantryItemData[]>(mockPantryItems);
+  const [pantryItems, setPantryItems] = useState<PantryItemData[]>(itemsWithImages);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
@@ -58,6 +75,19 @@ const PantryPage = () => {
     { id: '2', name: 'Smoothie Ingredients', items: ['3'] },
     { id: '3', name: 'Kids\' Lunches', items: ['6', '7'] }
   ]);
+
+  // Check if we should open the add item dialog from URL params
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'add') {
+      setAddItemDialogOpen(true);
+      // Clean up the URL
+      setSearchParams(new URLSearchParams());
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Notification counter for demo purposes
+  const [notificationCount] = useState(3);
   
   // Handler functions
   const handleIncrement = (id: string) => {
@@ -113,6 +143,11 @@ const PantryPage = () => {
     }
     
     const newId = (pantryItems.length + 1).toString();
+    
+    // Set default image based on category if not provided
+    const itemImage = newItem.image || 
+      (newItem.category ? defaultImages[newItem.category as keyof typeof defaultImages] : defaultImages.pantry);
+    
     const fullNewItem: PantryItemData = {
       id: newId,
       name: newItem.name as string,
@@ -120,8 +155,8 @@ const PantryPage = () => {
       unit: newItem.unit || 'piece',
       category: newItem.category || 'pantry',
       addedDate: new Date().toISOString(),
+      image: itemImage,
       ...(newItem.expiryDate && { expiryDate: newItem.expiryDate }),
-      ...(newItem.image && { image: newItem.image }),
     };
     
     setPantryItems([...pantryItems, fullNewItem]);
@@ -141,6 +176,9 @@ const PantryPage = () => {
       description: `${fullNewItem.name} has been added to your pantry`,
       duration: 3000,
     });
+
+    // In a real app, we would save to database here
+    console.log("Added item to database:", fullNewItem);
   };
   
   const handleBack = () => {
@@ -148,6 +186,16 @@ const PantryPage = () => {
   };
 
   const handleCreateList = (name: string) => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "List name cannot be empty",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
     const newList: CustomListType = {
       id: Date.now().toString(),
       name,
@@ -200,6 +248,16 @@ const PantryPage = () => {
   };
 
   const handleRenameList = (listId: string, newName: string) => {
+    if (!newName.trim()) {
+      toast({
+        title: "Error",
+        description: "List name cannot be empty",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
     setCustomLists(lists => 
       lists.map(list => 
         list.id === listId ? { ...list, name: newName } : list
@@ -225,9 +283,6 @@ const PantryPage = () => {
       return;
     }
     
-    // In a real app, this would add the items to the shopping list
-    // For now, we'll just simulate it
-    
     // Get the names of the selected items for the toast message
     const selectedItemNames = pantryItems
       .filter(item => selectedItems.includes(item.id))
@@ -243,10 +298,13 @@ const PantryPage = () => {
     // Clear the selection after adding to shopping list
     setSelectedItems([]);
     
-    // Simulate navigation to shopping list page after a short delay
+    // Navigate to shopping list page after a short delay
     setTimeout(() => {
       navigate('/shopping-list');
-    }, 2000);
+    }, 1500);
+    
+    // In a real app, we would save to database here
+    console.log("Sent items to shopping list:", selectedItems);
   };
   
   const filteredItems = searchQuery ? 
@@ -258,30 +316,31 @@ const PantryPage = () => {
     <div className="min-h-screen bg-kitchen-cream flex flex-col">
       <Header 
         title="My Pantry" 
-        showSettings={false} 
+        showSettings={true} 
         showBack={true} 
-        onBack={handleBack} 
+        onBack={handleBack}
+        notificationCount={notificationCount}
       />
       
-      <main className="flex-1 px-4 py-6">
+      <main className="flex-1 px-3 sm:px-4 py-4 sm:py-6 pb-20">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6 text-center">
-            <h2 className="text-xl font-medium text-kitchen-dark">
-              Track your ingredients, organize your kitchen, and make meal planning effortless.
+          <div className="mb-4 sm:mb-6 text-center">
+            <h2 className="text-lg sm:text-xl font-medium text-kitchen-dark">
+              Track your ingredients, organize your kitchen
             </h2>
           </div>
           
-          <div className="mb-6">
-            <Card className="bg-white/80 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex gap-3 mb-4">
+          <div className="mb-4 sm:mb-6">
+            <Card className="bg-white/80 backdrop-blur-sm shadow-sm">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={isMobile ? 16 : 18} />
                     <Input
                       placeholder="Search items..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-8 sm:pl-10 h-9 sm:h-10 text-sm sm:text-base"
                     />
                   </div>
                 </div>
@@ -295,8 +354,8 @@ const PantryPage = () => {
             </Card>
           </div>
           
-          {/* Moved CustomLists to the top */}
-          <div className="mb-6">
+          {/* CustomLists */}
+          <div className="mb-4 sm:mb-6 overflow-x-auto hide-scrollbar">
             <CustomLists
               lists={customLists}
               pantryItems={pantryItems}
@@ -307,7 +366,7 @@ const PantryPage = () => {
             />
           </div>
 
-          {/* Pantry List now takes full width */}
+          {/* Pantry List */}
           <div>
             <PantryList
               items={filteredItems}
@@ -324,8 +383,9 @@ const PantryPage = () => {
         </div>
       </main>
       
+      {/* Add Item Dialog */}
       <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className={`sm:max-w-[425px] ${isMobile ? 'p-4' : ''}`}>
           <DialogHeader>
             <DialogTitle>Add New Pantry Item</DialogTitle>
             <DialogDescription>
@@ -333,22 +393,22 @@ const PantryPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+          <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
+            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="name" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
                 Name
               </Label>
               <Input
                 id="name"
                 value={newItem.name || ''}
                 onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                className="col-span-3"
+                className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
                 placeholder="e.g. Rice, Milk, Eggs"
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="quantity" className="text-right">
+            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="quantity" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
                 Quantity
               </Label>
               <Input
@@ -357,19 +417,19 @@ const PantryPage = () => {
                 min="1"
                 value={newItem.quantity || 1}
                 onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value) || 1})}
-                className="col-span-3"
+                className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="unit" className="text-right">
+            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="unit" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
                 Unit
               </Label>
               <Select 
                 value={newItem.unit || 'piece'} 
                 onValueChange={(value) => setNewItem({...newItem, unit: value})}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
                   <SelectValue placeholder="Select unit" />
                 </SelectTrigger>
                 <SelectContent>
@@ -389,15 +449,15 @@ const PantryPage = () => {
               </Select>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
+            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="category" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
                 Category
               </Label>
               <Select 
                 value={newItem.category || 'pantry'} 
                 onValueChange={(value) => setNewItem({...newItem, category: value})}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -408,8 +468,8 @@ const PantryPage = () => {
               </Select>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="expiry" className="text-right">
+            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="expiry" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
                 Expiry Date
               </Label>
               <Input
@@ -417,21 +477,26 @@ const PantryPage = () => {
                 type="date"
                 value={newItem.expiryDate || ''}
                 onChange={(e) => setNewItem({...newItem, expiryDate: e.target.value})}
-                className="col-span-3"
+                className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="image" className="text-right">
+            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="image" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
                 Image URL
               </Label>
-              <Input
-                id="image"
-                value={newItem.image || ''}
-                onChange={(e) => setNewItem({...newItem, image: e.target.value})}
-                placeholder="https://example.com/image.jpg (optional)"
-                className="col-span-3"
-              />
+              <div className={`${isMobile ? 'col-span-3' : 'col-span-3'} flex flex-col gap-1`}>
+                <Input
+                  id="image"
+                  value={newItem.image || ''}
+                  onChange={(e) => setNewItem({...newItem, image: e.target.value})}
+                  placeholder="https://example.com/image.jpg (optional)"
+                />
+                <div className="flex justify-end items-center gap-2 mt-1 text-xs text-gray-500">
+                  <Image size={14} />
+                  <span>Image will be added automatically if not provided</span>
+                </div>
+              </div>
             </div>
           </div>
           

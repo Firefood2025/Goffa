@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Add a version timestamp to force refresh when app updates
+console.log("App version:", new Date().toISOString());
+
 const root = document.getElementById("root");
 
 // Clear any existing content before rendering
