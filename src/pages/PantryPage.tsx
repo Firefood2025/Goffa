@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, ListFilter, ShoppingCart, Image } from 'lucide-react';
+import { Plus, Search, ListFilter, ShoppingCart, Image, Camera, Upload, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -33,6 +34,7 @@ import {
 
 import { mockPantryItems } from '@/lib/data';
 import CustomLists from '@/components/pantry/CustomLists';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export type CustomListType = {
   id: string;
@@ -42,15 +44,16 @@ export type CustomListType = {
 
 // Default placeholder images for items by category
 const defaultImages = {
-  fridge: 'https://images.unsplash.com/photo-1606914469725-e31d7a9fda68?w=800&auto=format&fit=crop',
-  freezer: 'https://images.unsplash.com/photo-1584613862310-82314d5c1531?w=800&auto=format&fit=crop',
-  pantry: 'https://images.unsplash.com/photo-1590311824865-bae8501c2969?w=800&auto=format&fit=crop',
+  fridge: '/lovable-uploads/fridge-placeholder.jpg',
+  freezer: '/lovable-uploads/freezer-placeholder.jpg',
+  pantry: '/lovable-uploads/pantry-placeholder.jpg',
+  default: '/lovable-uploads/default-placeholder.jpg',
 };
 
 // Add placeholder images to items that don't have one
 const itemsWithImages = mockPantryItems.map(item => ({
   ...item,
-  image: item.image || defaultImages[item.category as keyof typeof defaultImages] || defaultImages.pantry
+  image: item.image || defaultImages[item.category as keyof typeof defaultImages] || defaultImages.default
 }));
 
 const PantryPage = () => {
@@ -70,6 +73,9 @@ const PantryPage = () => {
     category: 'pantry',
     addedDate: new Date().toISOString(),
   });
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [customLists, setCustomLists] = useState<CustomListType[]>([
     { id: '1', name: 'Weekly Recipes', items: ['1', '3', '5'] },
     { id: '2', name: 'Smoothie Ingredients', items: ['3'] },
@@ -129,6 +135,41 @@ const PantryPage = () => {
   
   const handleAddNew = () => {
     setAddItemDialogOpen(true);
+    setUploadedImage(null);
+    setNewItem({
+      name: '',
+      quantity: 1,
+      unit: 'piece',
+      category: 'pantry',
+      addedDate: new Date().toISOString(),
+    });
+  };
+  
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setUploadedImage(result);
+        setNewItem({...newItem, image: result});
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleTakePhoto = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleRemoveUploadedImage = () => {
+    setUploadedImage(null);
+    setNewItem({...newItem, image: undefined});
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
   
   const handleSaveNewItem = () => {
@@ -146,7 +187,7 @@ const PantryPage = () => {
     
     // Set default image based on category if not provided
     const itemImage = newItem.image || 
-      (newItem.category ? defaultImages[newItem.category as keyof typeof defaultImages] : defaultImages.pantry);
+      (newItem.category ? defaultImages[newItem.category as keyof typeof defaultImages] : defaultImages.default);
     
     const fullNewItem: PantryItemData = {
       id: newId,
@@ -159,10 +200,10 @@ const PantryPage = () => {
       ...(newItem.expiryDate && { expiryDate: newItem.expiryDate }),
     };
     
-    setPantryItems([...pantryItems, fullNewItem]);
+    setPantryItems(prev => [fullNewItem, ...prev]);
     setAddItemDialogOpen(false);
     
-    // Reset new item form
+    // Reset new item form and uploaded image
     setNewItem({
       name: '',
       quantity: 1,
@@ -170,6 +211,7 @@ const PantryPage = () => {
       category: 'pantry',
       addedDate: new Date().toISOString(),
     });
+    setUploadedImage(null);
     
     toast({
       title: "Item added",
@@ -324,13 +366,23 @@ const PantryPage = () => {
       
       <main className="flex-1 px-3 sm:px-4 py-4 sm:py-6 pb-20">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-4 sm:mb-6 text-center">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4 sm:mb-6 text-center"
+          >
             <h2 className="text-lg sm:text-xl font-medium text-kitchen-dark">
               Track your ingredients, organize your kitchen
             </h2>
-          </div>
+          </motion.div>
           
-          <div className="mb-4 sm:mb-6">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="mb-4 sm:mb-6"
+          >
             <Card className="bg-white/80 backdrop-blur-sm shadow-sm">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -352,22 +404,35 @@ const PantryPage = () => {
                 />
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
           
           {/* CustomLists */}
-          <div className="mb-4 sm:mb-6 overflow-x-auto hide-scrollbar">
-            <CustomLists
-              lists={customLists}
-              pantryItems={pantryItems}
-              onCreateList={handleCreateList}
-              onDeleteList={handleDeleteList}
-              onRenameList={handleRenameList}
-              onRemoveFromList={handleRemoveFromList}
-            />
-          </div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+            className="mb-4 sm:mb-6"
+          >
+            <ScrollArea className="w-full overflow-x-auto">
+              <div className="pb-2">
+                <CustomLists
+                  lists={customLists}
+                  pantryItems={pantryItems}
+                  onCreateList={handleCreateList}
+                  onDeleteList={handleDeleteList}
+                  onRenameList={handleRenameList}
+                  onRemoveFromList={handleRemoveFromList}
+                />
+              </div>
+            </ScrollArea>
+          </motion.div>
 
           {/* Pantry List */}
-          <div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+          >
             <PantryList
               items={filteredItems}
               onIncrement={handleIncrement}
@@ -379,13 +444,13 @@ const PantryPage = () => {
               selectedItems={selectedItems}
               onToggleSelectItem={handleToggleSelectItem}
             />
-          </div>
+          </motion.div>
         </div>
       </main>
       
       {/* Add Item Dialog */}
       <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
-        <DialogContent className={`sm:max-w-[425px] ${isMobile ? 'p-4' : ''}`}>
+        <DialogContent className={`sm:max-w-[425px] ${isMobile ? 'p-4 max-h-[90vh]' : ''}`}>
           <DialogHeader>
             <DialogTitle>Add New Pantry Item</DialogTitle>
             <DialogDescription>
@@ -393,112 +458,154 @@ const PantryPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
-            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="name" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={newItem.name || ''}
-                onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
-                placeholder="e.g. Rice, Milk, Eggs"
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="quantity" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
-                Quantity
-              </Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={newItem.quantity || 1}
-                onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value) || 1})}
-                className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="unit" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
-                Unit
-              </Label>
-              <Select 
-                value={newItem.unit || 'piece'} 
-                onValueChange={(value) => setNewItem({...newItem, unit: value})}
-              >
-                <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="piece">Piece</SelectItem>
-                  <SelectItem value="kg">Kilogram</SelectItem>
-                  <SelectItem value="g">Gram</SelectItem>
-                  <SelectItem value="l">Liter</SelectItem>
-                  <SelectItem value="ml">Milliliter</SelectItem>
-                  <SelectItem value="cup">Cup</SelectItem>
-                  <SelectItem value="tbsp">Tablespoon</SelectItem>
-                  <SelectItem value="tsp">Teaspoon</SelectItem>
-                  <SelectItem value="bottle">Bottle</SelectItem>
-                  <SelectItem value="can">Can</SelectItem>
-                  <SelectItem value="box">Box</SelectItem>
-                  <SelectItem value="package">Package</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="category" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
-                Category
-              </Label>
-              <Select 
-                value={newItem.category || 'pantry'} 
-                onValueChange={(value) => setNewItem({...newItem, category: value})}
-              >
-                <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fridge">Fridge</SelectItem>
-                  <SelectItem value="freezer">Freezer</SelectItem>
-                  <SelectItem value="pantry">Pantry</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="expiry" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
-                Expiry Date
-              </Label>
-              <Input
-                id="expiry"
-                type="date"
-                value={newItem.expiryDate || ''}
-                onChange={(e) => setNewItem({...newItem, expiryDate: e.target.value})}
-                className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="image" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
-                Image URL
-              </Label>
-              <div className={`${isMobile ? 'col-span-3' : 'col-span-3'} flex flex-col gap-1`}>
-                <Input
-                  id="image"
-                  value={newItem.image || ''}
-                  onChange={(e) => setNewItem({...newItem, image: e.target.value})}
-                  placeholder="https://example.com/image.jpg (optional)"
-                />
-                <div className="flex justify-end items-center gap-2 mt-1 text-xs text-gray-500">
-                  <Image size={14} />
-                  <span>Image will be added automatically if not provided</span>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="grid gap-3 sm:gap-4 py-3 sm:py-4 pr-4">
+              {/* Image Upload Section */}
+              <div className="flex flex-col items-center gap-3 mb-2">
+                <div className="w-32 h-32 relative rounded-lg overflow-hidden border border-gray-200">
+                  {uploadedImage ? (
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={uploadedImage} 
+                        alt="Item preview" 
+                        className="w-full h-full object-cover"
+                      />
+                      <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                        onClick={handleRemoveUploadedImage}
+                      >
+                        <X size={12} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <Image size={32} className="text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleTakePhoto} 
+                    className="text-xs"
+                  >
+                    <Camera size={14} className="mr-1" />
+                    Take Photo
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="text-xs"
+                  >
+                    <Upload size={14} className="mr-1" />
+                    Upload
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    capture="environment"
+                  />
                 </div>
               </div>
+              
+              <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+                <Label htmlFor="name" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  value={newItem.name || ''}
+                  onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                  className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
+                  placeholder="e.g. Rice, Milk, Eggs"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+                <Label htmlFor="quantity" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                  Quantity
+                </Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={newItem.quantity || 1}
+                  onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value) || 1})}
+                  className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+                <Label htmlFor="unit" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                  Unit
+                </Label>
+                <Select 
+                  value={newItem.unit || 'piece'} 
+                  onValueChange={(value) => setNewItem({...newItem, unit: value})}
+                >
+                  <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="piece">Piece</SelectItem>
+                    <SelectItem value="kg">Kilogram</SelectItem>
+                    <SelectItem value="g">Gram</SelectItem>
+                    <SelectItem value="l">Liter</SelectItem>
+                    <SelectItem value="ml">Milliliter</SelectItem>
+                    <SelectItem value="cup">Cup</SelectItem>
+                    <SelectItem value="tbsp">Tablespoon</SelectItem>
+                    <SelectItem value="tsp">Teaspoon</SelectItem>
+                    <SelectItem value="bottle">Bottle</SelectItem>
+                    <SelectItem value="can">Can</SelectItem>
+                    <SelectItem value="box">Box</SelectItem>
+                    <SelectItem value="package">Package</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+                <Label htmlFor="category" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                  Category
+                </Label>
+                <Select 
+                  value={newItem.category || 'pantry'} 
+                  onValueChange={(value) => setNewItem({...newItem, category: value})}
+                >
+                  <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fridge">Fridge</SelectItem>
+                    <SelectItem value="freezer">Freezer</SelectItem>
+                    <SelectItem value="pantry">Pantry</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
+                <Label htmlFor="expiry" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                  Expiry Date
+                </Label>
+                <Input
+                  id="expiry"
+                  type="date"
+                  value={newItem.expiryDate || ''}
+                  onChange={(e) => setNewItem({...newItem, expiryDate: e.target.value})}
+                  className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
+                />
+              </div>
             </div>
-          </div>
+          </ScrollArea>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddItemDialogOpen(false)}>
