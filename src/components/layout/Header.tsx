@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { Settings, User, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   title?: string;
@@ -32,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="flex items-center justify-between p-4 border-b border-muted bg-white">
+    <header className="sticky top-0 z-40 flex items-center justify-between p-4 border-b border-muted bg-white">
       <div className="flex items-center">
         {showBack && (
           <button 

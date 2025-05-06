@@ -1,5 +1,15 @@
+
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root");
+
+// Clear any existing content before rendering
+if (root) {
+  while (root.firstChild) {
+    root.removeChild(root.firstChild);
+  }
+  
+  createRoot(root).render(<App />);
+}
