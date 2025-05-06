@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, ListFilter, ShoppingCart, Image, Camera, Upload, X } from 'lucide-react';
+import { Plus, Search, ListFilter, ShoppingCart, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Header from '@/components/layout/Header';
@@ -35,6 +34,7 @@ import {
 import { mockPantryItems } from '@/lib/data';
 import CustomLists from '@/components/pantry/CustomLists';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import ImageUploader from '@/components/pantry/ImageUploader';
 
 export type CustomListType = {
   id: string;
@@ -73,7 +73,6 @@ const PantryPage = () => {
     category: 'pantry',
     addedDate: new Date().toISOString(),
   });
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [customLists, setCustomLists] = useState<CustomListType[]>([
@@ -135,7 +134,6 @@ const PantryPage = () => {
   
   const handleAddNew = () => {
     setAddItemDialogOpen(true);
-    setUploadedImage(null);
     setNewItem({
       name: '',
       quantity: 1,
@@ -143,6 +141,54 @@ const PantryPage = () => {
       category: 'pantry',
       addedDate: new Date().toISOString(),
     });
+  };
+  
+  const handleSendToShopping = () => {
+    if (selectedItems.length === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please select items to add to your shopping list",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    // Get the selected items
+    const selectedItemsList = pantryItems.filter(item => selectedItems.includes(item.id));
+    
+    // Create a new shopping list with the current date
+    const newShoppingList = {
+      id: Date.now().toString(),
+      name: `Shopping List - ${new Date().toLocaleDateString()}`,
+      creator: "Current User", // In a real app, this would be the current user
+      items: selectedItemsList.map(item => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        category: item.category,
+        isChecked: false,
+        image: item.image
+      }))
+    };
+    
+    // In a real app, we would save this to the database
+    console.log("Created new shopping list:", newShoppingList);
+    
+    // Show success message
+    toast({
+      title: "Shopping List Created",
+      description: `Added ${selectedItems.length} item(s) to a new shopping list`,
+      duration: 3000,
+    });
+    
+    // Clear the selection after adding to shopping list
+    setSelectedItems([]);
+    
+    // Navigate to shopping list page after a short delay
+    setTimeout(() => {
+      navigate('/shopping-list');
+    }, 1500);
   };
   
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,40 +361,6 @@ const PantryPage = () => {
     }
   };
 
-  const handleSendToShopping = () => {
-    if (selectedItems.length === 0) {
-      toast({
-        title: "No items selected",
-        description: "Please select items to add to your shopping list",
-        duration: 3000,
-      });
-      return;
-    }
-    
-    // Get the names of the selected items for the toast message
-    const selectedItemNames = pantryItems
-      .filter(item => selectedItems.includes(item.id))
-      .map(item => item.name)
-      .join(", ");
-    
-    toast({
-      title: "Shopping List Updated",
-      description: `Added ${selectedItems.length} item(s) to your shopping list: ${selectedItemNames}`,
-      duration: 3000,
-    });
-    
-    // Clear the selection after adding to shopping list
-    setSelectedItems([]);
-    
-    // Navigate to shopping list page after a short delay
-    setTimeout(() => {
-      navigate('/shopping-list');
-    }, 1500);
-    
-    // In a real app, we would save to database here
-    console.log("Sent items to shopping list:", selectedItems);
-  };
-  
   const filteredItems = searchQuery ? 
     pantryItems.filter(item => 
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -364,8 +376,8 @@ const PantryPage = () => {
         notificationCount={notificationCount}
       />
       
-      <main className="flex-1 px-3 sm:px-4 py-4 sm:py-6 pb-20">
-        <div className="max-w-4xl mx-auto">
+      <main className="flex-1 px-0 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
+        <div className="max-w-4xl mx-auto px-3 sm:px-0">
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -385,7 +397,7 @@ const PantryPage = () => {
           >
             <Card className="bg-white/80 backdrop-blur-sm shadow-sm">
               <CardContent className="p-3 sm:p-4">
-                <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-3 sm:mb-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={isMobile ? 16 : 18} />
                     <Input
@@ -413,7 +425,7 @@ const PantryPage = () => {
             transition={{ delay: 0.2, duration: 0.3 }}
             className="mb-4 sm:mb-6"
           >
-            <ScrollArea className="w-full overflow-x-auto">
+            <ScrollArea className="w-full overflow-x-auto hide-scrollbar">
               <div className="pb-2">
                 <CustomLists
                   lists={customLists}
@@ -460,79 +472,27 @@ const PantryPage = () => {
           
           <ScrollArea className="max-h-[60vh]">
             <div className="grid gap-3 sm:gap-4 py-3 sm:py-4 pr-4">
-              {/* Image Upload Section */}
-              <div className="flex flex-col items-center gap-3 mb-2">
-                <div className="w-32 h-32 relative rounded-lg overflow-hidden border border-gray-200">
-                  {uploadedImage ? (
-                    <div className="relative w-full h-full">
-                      <img 
-                        src={uploadedImage} 
-                        alt="Item preview" 
-                        className="w-full h-full object-cover"
-                      />
-                      <Button 
-                        variant="destructive" 
-                        size="icon" 
-                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                        onClick={handleRemoveUploadedImage}
-                      >
-                        <X size={12} />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <Image size={32} className="text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleTakePhoto} 
-                    className="text-xs"
-                  >
-                    <Camera size={14} className="mr-1" />
-                    Take Photo
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => fileInputRef.current?.click()} 
-                    className="text-xs"
-                  >
-                    <Upload size={14} className="mr-1" />
-                    Upload
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    capture="environment"
-                  />
-                </div>
-              </div>
+              {/* Image Upload Section using the ImageUploader component */}
+              <ImageUploader
+                initialImage={newItem.image}
+                onImageChange={(imageData) => setNewItem({...newItem, image: imageData || undefined})}
+              />
               
               <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-                <Label htmlFor="name" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                <Label htmlFor="name" className="text-right col-span-1">
                   Name
                 </Label>
                 <Input
                   id="name"
                   value={newItem.name || ''}
                   onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                  className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
+                  className="col-span-3"
                   placeholder="e.g. Rice, Milk, Eggs"
                 />
               </div>
               
               <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-                <Label htmlFor="quantity" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                <Label htmlFor="quantity" className="text-right col-span-1">
                   Quantity
                 </Label>
                 <Input
@@ -541,19 +501,19 @@ const PantryPage = () => {
                   min="1"
                   value={newItem.quantity || 1}
                   onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value) || 1})}
-                  className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
+                  className="col-span-3"
                 />
               </div>
               
               <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-                <Label htmlFor="unit" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                <Label htmlFor="unit" className="text-right col-span-1">
                   Unit
                 </Label>
                 <Select 
                   value={newItem.unit || 'piece'} 
                   onValueChange={(value) => setNewItem({...newItem, unit: value})}
                 >
-                  <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
+                  <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select unit" />
                   </SelectTrigger>
                   <SelectContent>
@@ -574,14 +534,14 @@ const PantryPage = () => {
               </div>
               
               <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-                <Label htmlFor="category" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                <Label htmlFor="category" className="text-right col-span-1">
                   Category
                 </Label>
                 <Select 
                   value={newItem.category || 'pantry'} 
                   onValueChange={(value) => setNewItem({...newItem, category: value})}
                 >
-                  <SelectTrigger className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}>
+                  <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -593,7 +553,7 @@ const PantryPage = () => {
               </div>
               
               <div className="grid grid-cols-4 items-center gap-2 sm:gap-4">
-                <Label htmlFor="expiry" className={`${isMobile ? 'text-right col-span-1' : 'text-right'}`}>
+                <Label htmlFor="expiry" className="text-right col-span-1">
                   Expiry Date
                 </Label>
                 <Input
@@ -601,17 +561,20 @@ const PantryPage = () => {
                   type="date"
                   value={newItem.expiryDate || ''}
                   onChange={(e) => setNewItem({...newItem, expiryDate: e.target.value})}
-                  className={`${isMobile ? 'col-span-3' : 'col-span-3'}`}
+                  className="col-span-3"
                 />
               </div>
             </div>
           </ScrollArea>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddItemDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setAddItemDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSaveNewItem} className="bg-kitchen-green hover:bg-kitchen-green/90">
+            <Button 
+              onClick={handleSaveNewItem} 
+              className="bg-kitchen-green hover:bg-kitchen-green/90 w-full sm:w-auto"
+            >
               Add Item
             </Button>
           </DialogFooter>

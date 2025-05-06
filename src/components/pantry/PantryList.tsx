@@ -3,16 +3,8 @@ import React, { useState, useEffect } from 'react';
 import PantryItem, { PantryItemData } from './PantryItem';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Utensils, Snowflake, Archive, Clock, Plus, MoreHorizontal, Grid, List as ListIcon, SlidersHorizontal } from 'lucide-react';
+import { Utensils, Snowflake, Archive, Clock, Plus, MoreHorizontal, Grid, List as ListIcon } from 'lucide-react';
 import { CustomListType } from '@/pages/PantryPage';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,11 +107,11 @@ const PantryList: React.FC<PantryListProps> = ({
   }, [isMobile, items.length]);
 
   return (
-    <div className="pb-24 md:pb-20">
+    <div className="pb-20">
       <div className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 pb-2 rounded-lg shadow-sm mb-4">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-2 px-2 md:px-4 pt-4">
           <h2 className="text-xl font-bold">My Pantry</h2>
-          <div className="flex flex-wrap gap-2 justify-between w-full md:w-auto md:justify-end">
+          <div className="flex items-center gap-2 justify-between w-full md:w-auto md:justify-end">
             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
               <Button
                 variant="ghost"
@@ -142,7 +134,7 @@ const PantryList: React.FC<PantryListProps> = ({
             </div>
             <Button 
               onClick={onAddNew} 
-              className="bg-kitchen-green hover:bg-kitchen-green/90"
+              className="bg-kitchen-green hover:bg-kitchen-green/90 whitespace-nowrap"
               size="sm"
             >
               <Plus size={16} className="mr-1" /> Add Item
@@ -150,9 +142,9 @@ const PantryList: React.FC<PantryListProps> = ({
           </div>
         </div>
       
-        <ScrollArea className="w-full">
+        <div className="w-full overflow-x-auto hide-scrollbar">
           <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="px-2 md:px-4">
-            <TabsList className="w-full flex overflow-x-auto hide-scrollbar p-1 h-auto">
+            <TabsList className="w-full flex p-1 h-auto overflow-visible">
               <TabsTrigger value="all" className="flex items-center justify-center gap-1 flex-shrink-0">
                 {getCategoryIcon("all")}
                 All
@@ -190,7 +182,7 @@ const PantryList: React.FC<PantryListProps> = ({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        </ScrollArea>
+        </div>
       </div>
       
       <AnimatePresence mode="wait">
@@ -200,7 +192,7 @@ const PantryList: React.FC<PantryListProps> = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
-          className={`${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4' : 'space-y-2'}`}
+          className={`${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4' : 'space-y-3'}`}
         >
           {filteredItems.length === 0 ? (
             <motion.div 
@@ -226,6 +218,7 @@ const PantryList: React.FC<PantryListProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.3 }}
                 className={viewMode === 'grid' ? '' : 'w-full'}
+                whileHover={{ scale: 1.01 }}
               >
                 <PantryItem
                   item={item}
