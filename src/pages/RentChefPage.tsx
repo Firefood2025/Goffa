@@ -16,6 +16,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { motion } from 'framer-motion';
 
 export type ChefCategory = 'breakfast' | 'lunch' | 'dinner' | 'dessert' | 'event' | 'all';
 export type ChefStyle = 'Mexican' | 'Italian' | 'Healthy' | 'Mediterranean' | 'Asian' | 'Meal Prep' | 'Brunch' | 'all';
@@ -71,12 +72,46 @@ const RentChefPage = () => {
     navigate('/');
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-kitchen-cream flex flex-col">
-      <Header showBack title="Rent a Chef" onBack={handleBack} />
+      <Header showBack onBack={handleBack} />
       
-      <div className="container mx-auto px-4 py-6 mb-16 flex-1">
-        <div className="relative py-8 sm:py-12 mb-6 sm:mb-8 bg-kitchen-green/90 rounded-lg shadow-lg overflow-hidden">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="container mx-auto px-4 py-6 mb-16 flex-1"
+      >
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.7 }}
+          className="relative py-8 sm:py-12 mb-6 sm:mb-8 bg-kitchen-green/90 rounded-lg shadow-lg overflow-hidden"
+        >
           <div className="absolute inset-0 opacity-20">
             <img 
               src="https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
@@ -90,10 +125,15 @@ const RentChefPage = () => {
               Bring restaurant-quality dining to your home with our professional chefs
             </p>
           </div>
-        </div>
+        </motion.div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
-          <div className="lg:col-span-2">
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-2"
+          >
             <Card className="mb-6 shadow-md">
               <CardHeader className="pb-2">
                 <h2 className="text-xl sm:text-2xl font-bold">Available Chefs</h2>
@@ -107,28 +147,43 @@ const RentChefPage = () => {
                 />
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                  {filteredChefs.map((chef) => (
-                    <ChefCard
-                      key={chef.id}
-                      chef={chef}
-                      onBookNow={() => handleBooking(chef)}
-                      onViewGallery={() => {
-                        setSelectedChef(chef);
-                        setShowGallery(true);
-                      }}
-                    />
-                  ))}
-                  {filteredChefs.length === 0 && (
-                    <p className="text-center col-span-1 sm:col-span-2 py-10 text-gray-500">
+                  {filteredChefs.length === 0 ? (
+                    <motion.p 
+                      variants={itemVariants}
+                      className="text-center col-span-1 sm:col-span-2 py-10 text-gray-500"
+                    >
                       No chefs available with the selected filters.
-                    </p>
+                    </motion.p>
+                  ) : (
+                    filteredChefs.map((chef) => (
+                      <motion.div
+                        key={chef.id}
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <ChefCard
+                          chef={chef}
+                          onBookNow={() => handleBooking(chef)}
+                          onViewGallery={() => {
+                            setSelectedChef(chef);
+                            setShowGallery(true);
+                          }}
+                        />
+                      </motion.div>
+                    ))
                   )}
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
           
-          <div className="order-first lg:order-none mb-6 lg:mb-0">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="order-first lg:order-none mb-6 lg:mb-0"
+          >
             <Card className="sticky top-24 shadow-md">
               <CardHeader className="pb-2 bg-muted/30">
                 <h2 className="text-lg sm:text-xl font-semibold">Book a Chef</h2>
@@ -173,7 +228,10 @@ const RentChefPage = () => {
                           variant={time === slot ? "default" : "outline"}
                           size="sm"
                           onClick={() => setTime(slot)}
-                          className={time === slot ? "bg-kitchen-green hover:bg-kitchen-green/90" : ""}
+                          className={`
+                            transition-all duration-200 
+                            ${time === slot ? "bg-kitchen-green hover:bg-kitchen-green/90 scale-105" : ""}
+                          `}
                         >
                           {isMobile ? slot : (
                             <>
@@ -198,9 +256,9 @@ const RentChefPage = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {selectedChef && showGallery && (
         <ChefGallery 
@@ -224,7 +282,7 @@ const RentChefPage = () => {
   );
 };
 
-// Mock data for chefs with better images
+// Mock data for chefs with better images and fixed URLs
 export interface Chef {
   id: string;
   name: string;
@@ -238,6 +296,7 @@ export interface Chef {
   gallery: string[];
 }
 
+// Updated CHEFS array with fixed and more reliable image URLs
 export const CHEFS: Chef[] = [
   {
     id: '1',
@@ -259,7 +318,7 @@ export const CHEFS: Chef[] = [
   {
     id: '2',
     name: 'Jenny Chang',
-    image: 'https://images.unsplash.com/photo-1414854300910-2313501f4564?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
     rating: 4.9,
     specialties: ['dinner', 'dessert'],
     styles: ['Asian', 'Healthy'],
@@ -276,7 +335,7 @@ export const CHEFS: Chef[] = [
   {
     id: '3',
     name: 'Marco Rossi',
-    image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1581299894007-aaa50297cf16?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
     rating: 4.7,
     specialties: ['lunch', 'dinner'],
     styles: ['Italian', 'Mediterranean'],
@@ -293,7 +352,7 @@ export const CHEFS: Chef[] = [
   {
     id: '4',
     name: 'Sofia Patel',
-    image: 'https://images.unsplash.com/photo-1587711066438-f57c878a98a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
     rating: 4.9,
     specialties: ['breakfast', 'lunch', 'event'],
     styles: ['Brunch', 'Meal Prep'],
@@ -327,7 +386,7 @@ export const CHEFS: Chef[] = [
   {
     id: '6',
     name: 'Emma Wilson',
-    image: 'https://images.unsplash.com/photo-1581299894007-aaa50297cf16?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
     rating: 5.0,
     specialties: ['dessert', 'breakfast'],
     styles: ['Brunch', 'Italian'],

@@ -2,6 +2,7 @@
 import React from 'react';
 import { ChefHat, RefrigeratorIcon, Plus, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -19,60 +20,119 @@ const Index = () => {
   const { spaces } = useSpaces();
   const expiringSoonItems = getExpiringSoonItems(7);
   
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { type: "spring", stiffness: 100 }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-kitchen-cream kitchen-texture flex flex-col">
-      <Header title="PantryChef AI" />
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="min-h-screen bg-kitchen-cream kitchen-texture flex flex-col"
+    >
+      <Header />
       
-      <main className="flex-1 px-4 py-6 mb-16">
-        <div className="mb-4">
+      <motion.main 
+        variants={containerVariants}
+        className="flex-1 px-4 py-6 mb-16 overflow-x-hidden"
+      >
+        <motion.div variants={itemVariants} className="mb-4">
           <h2 className="text-2xl font-bold font-heading text-kitchen-dark">Hello, Chef!</h2>
           <p className="text-gray-600">What would you like to do today?</p>
-        </div>
+        </motion.div>
         
-        {spaces.length > 0 && <SpaceQuickAccess spaces={spaces} />}
+        {spaces.length > 0 && (
+          <motion.div variants={itemVariants}>
+            <SpaceQuickAccess spaces={spaces} />
+          </motion.div>
+        )}
         
-        <ChefTile />
+        <motion.div variants={itemVariants}>
+          <ChefTile />
+        </motion.div>
         
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <ActionTile
-            title="What Can I Make?"
-            icon={ChefHat}
-            to="/recipes"
-            variant="primary"
-            className="col-span-2 h-40"
-          />
+        <motion.div variants={containerVariants} className="grid grid-cols-2 gap-4 mb-6">
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ scale: 1.02 }}
+            className="col-span-2"
+          >
+            <ActionTile
+              title="What Can I Make?"
+              icon={ChefHat}
+              to="/recipes"
+              variant="primary"
+              className="h-40"
+            />
+          </motion.div>
           
-          <ActionTile
-            title="My Pantry"
-            icon={RefrigeratorIcon}
-            to="/pantry"
-            variant="secondary"
-            className="h-32"
-          />
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ scale: 1.02 }}
+          >
+            <ActionTile
+              title="My Pantry"
+              icon={RefrigeratorIcon}
+              to="/pantry"
+              variant="secondary"
+              className="h-32"
+            />
+          </motion.div>
           
-          <ActionTile
-            title="Add Item"
-            icon={Plus}
-            to="/pantry?action=add"
-            variant="accent"
-            className="h-32"
-          />
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ scale: 1.02 }}
+          >
+            <ActionTile
+              title="Add Item"
+              icon={Plus}
+              to="/pantry?action=add"
+              variant="accent"
+              className="h-32"
+            />
+          </motion.div>
           
-          <ActionTile
-            title="Shopping List"
-            icon={ShoppingCart}
-            to="/shopping-list"
-            variant="secondary"
-            className="col-span-2 h-32"
-          />
-        </div>
+          <motion.div 
+            variants={itemVariants} 
+            whileHover={{ scale: 1.02 }}
+            className="col-span-2"
+          >
+            <ActionTile
+              title="Shopping List"
+              icon={ShoppingCart}
+              to="/shopping-list"
+              variant="secondary"
+              className="h-32"
+            />
+          </motion.div>
+        </motion.div>
         
-        <ExpiringSoonSection items={expiringSoonItems} />
-      </main>
+        <motion.div variants={itemVariants}>
+          <ExpiringSoonSection items={expiringSoonItems} />
+        </motion.div>
+      </motion.main>
       
       <FloatingGrabAndGoButton />
       <Footer />
-    </div>
+    </motion.div>
   );
 };
 
