@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Chef } from "@/types/chef";
+import { Chef, ChefCategory, ChefStyle } from "@/types/chef";
 import { ChefCard } from "@/components/chef/ChefCard";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChefFilter } from "@/components/chef/ChefFilter";

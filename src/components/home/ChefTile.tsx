@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { ChefHat } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import { CHEFS } from '@/pages/RentChefPage';
+import { CHEFS } from '@/data/chefData';
 
 export const ChefTile = () => {
   const { toast } = useToast();

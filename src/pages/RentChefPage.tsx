@@ -11,13 +11,13 @@ import { ChefBookingForm } from '@/components/chef/ChefBookingForm';
 import ChefPageHero from '@/components/chef/ChefPageHero';
 import ChefBookingSidebar from '@/components/chef/ChefBookingSidebar';
 import ChefList from '@/components/chef/ChefList';
-import { Chef } from '@/types/chef';
+import { Chef, ChefCategory, ChefStyle } from '@/types/chef';
 import { CHEFS } from '@/data/chefData';
 
 const RentChefPage = () => {
   const [selectedChef, setSelectedChef] = useState<Chef | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('all' as const);
-  const [selectedStyle, setSelectedStyle] = useState('all' as const);
+  const [selectedCategory, setSelectedCategory] = useState<ChefCategory>('all');
+  const [selectedStyle, setSelectedStyle] = useState<ChefStyle>('all');
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState<string>("12:00");
   const [showGallery, setShowGallery] = useState(false);

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ChefCategory, ChefStyle } from '@/pages/RentChefPage';
+import { ChefCategory, ChefStyle } from '@/types/chef';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChefHat, Utensils, Coffee, Salad, Cake, PartyPopper } from 'lucide-react';
