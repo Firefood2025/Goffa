@@ -6,9 +6,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChefFilter } from "@/components/chef/ChefFilter";
 import { motion } from 'framer-motion';
 
-export type ChefCategory = 'breakfast' | 'lunch' | 'dinner' | 'dessert' | 'event' | 'all';
-export type ChefStyle = 'Mexican' | 'Italian' | 'Healthy' | 'Mediterranean' | 'Asian' | 'Meal Prep' | 'Brunch' | 'all';
-
 interface ChefListProps {
   chefs: Chef[];
   selectedCategory: ChefCategory;
