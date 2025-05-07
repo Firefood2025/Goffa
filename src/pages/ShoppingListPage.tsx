@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { createClient } from '@supabase/supabase-js';
 
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -10,54 +11,225 @@ import { ShoppingItemData } from '@/components/shopping/ShoppingItem';
 
 import { mockShoppingItems } from '@/lib/data';
 
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
 const ShoppingListPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
   const [shoppingItems, setShoppingItems] = useState<ShoppingItemData[]>(mockShoppingItems);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch items from Supabase if available
+  useEffect(() => {
+    const fetchShoppingItems = async () => {
+      try {
+        if (supabase) {
+          const { data, error } = await supabase
+            .from('shopping_list')
+            .select('*');
+          
+          if (error) throw error;
+          
+          if (data) {
+            setShoppingItems(data as ShoppingItemData[]);
+          }
+        } else {
+          // Use mock data as fallback
+          setShoppingItems(mockShoppingItems);
+        }
+      } catch (error) {
+        console.error('Error fetching shopping items:', error);
+        toast({
+          title: 'Failed to load shopping list',
+          description: 'Using demo data instead',
+          variant: 'destructive',
+        });
+        setShoppingItems(mockShoppingItems);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchShoppingItems();
+  }, [toast]);
   
   // Handler functions
-  const handleToggle = (id: string) => {
-    setShoppingItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, isChecked: !item.isChecked } : item
-      )
-    );
+  const handleToggle = async (id: string) => {
+    try {
+      // Find the item to toggle
+      const item = shoppingItems.find(item => item.id === id);
+      if (!item) return;
+      
+      const updatedItem = { ...item, isChecked: !item.isChecked };
+      
+      // Optimistic UI update
+      setShoppingItems(items =>
+        items.map(item =>
+          item.id === id ? updatedItem : item
+        )
+      );
+      
+      // Update in database if Supabase is available
+      if (supabase) {
+        const { error } = await supabase
+          .from('shopping_list')
+          .update({ isChecked: updatedItem.isChecked })
+          .eq('id', id);
+          
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error toggling item:', error);
+      toast({
+        title: 'Failed to update item',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+      
+      // Revert the optimistic update on error
+      setShoppingItems(items =>
+        items.map(item =>
+          item.id === id ? { ...item, isChecked: !item.isChecked } : item
+        )
+      );
+    }
   };
   
-  const handleDelete = (id: string) => {
-    setShoppingItems(items => items.filter(item => item.id !== id));
-    
-    toast({
-      title: "Item removed",
-      description: "The item has been removed from your shopping list",
-      duration: 3000,
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      // Optimistic UI update
+      const deletedItem = shoppingItems.find(item => item.id === id);
+      setShoppingItems(items => items.filter(item => item.id !== id));
+      
+      // Delete from database if Supabase is available
+      if (supabase) {
+        const { error } = await supabase
+          .from('shopping_list')
+          .delete()
+          .eq('id', id);
+          
+        if (error) throw error;
+      }
+      
+      toast({
+        title: "Item removed",
+        description: "The item has been removed from your shopping list",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast({
+        title: 'Failed to delete item',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+      
+      // Revert the optimistic update on error
+      if (deletedItem) {
+        setShoppingItems(prev => [...prev, deletedItem]);
+      }
+    }
   };
   
   const handleAddNew = () => {
-    // In a real application, this would open a form or modal
-    toast({
-      title: "Add item feature",
-      description: "This would open a form to add a new shopping list item",
-      duration: 3000,
-    });
+    // Open a form dialog to add a new item
+    // For simplicity, we'll just add a placeholder item
+    const newItem: ShoppingItemData = {
+      id: `new-${Date.now()}`,
+      name: 'New Item',
+      quantity: 1,
+      unit: 'pc',
+      category: 'General',
+      isChecked: false,
+      note: 'Click to edit'
+    };
+    
+    // Add to state first (optimistic UI update)
+    setShoppingItems(items => [...items, newItem]);
+    
+    // Add to database if Supabase is available
+    if (supabase) {
+      supabase
+        .from('shopping_list')
+        .insert([newItem])
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error adding item to shopping list:', error);
+            toast({
+              title: 'Failed to add item',
+              description: 'Please try again',
+              variant: 'destructive',
+            });
+            // Remove the item if database insert failed
+            setShoppingItems(items => items.filter(item => item.id !== newItem.id));
+          } else {
+            toast({
+              title: "Item added",
+              description: "New item has been added to your shopping list",
+              duration: 3000,
+            });
+          }
+        });
+    } else {
+      toast({
+        title: "Item added",
+        description: "New item has been added to your shopping list",
+        duration: 3000,
+      });
+    }
   };
   
-  const handleClearChecked = () => {
-    setShoppingItems(items => items.filter(item => !item.isChecked));
-    
-    toast({
-      title: "Checked items cleared",
-      description: "All checked items have been removed from your list",
-      duration: 3000,
-    });
+  const handleClearChecked = async () => {
+    try {
+      // Get the IDs of checked items
+      const checkedItemIds = shoppingItems
+        .filter(item => item.isChecked)
+        .map(item => item.id);
+        
+      // Optimistic UI update
+      setShoppingItems(items => items.filter(item => !item.isChecked));
+      
+      // Delete from database if Supabase is available
+      if (supabase) {
+        const { error } = await supabase
+          .from('shopping_list')
+          .delete()
+          .in('id', checkedItemIds);
+          
+        if (error) throw error;
+      }
+      
+      toast({
+        title: "Checked items cleared",
+        description: "All checked items have been removed from your list",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error clearing checked items:', error);
+      toast({
+        title: 'Failed to clear checked items',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+      
+      // If there's an error, we should reload the list
+      if (supabase) {
+        const { data } = await supabase.from('shopping_list').select('*');
+        if (data) {
+          setShoppingItems(data as ShoppingItemData[]);
+        }
+      }
+    }
   };
   
   const handleShare = () => {
     toast({
       title: "Share list feature",
-      description: "This would open options to share your shopping list",
+      description: "This would open options to share your shopping list with family members",
       duration: 3000,
     });
   };
@@ -76,14 +248,20 @@ const ShoppingListPage = () => {
       />
       
       <main className="flex-1 px-4 py-6">
-        <ShoppingList
-          items={shoppingItems}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onAddNew={handleAddNew}
-          onClearChecked={handleClearChecked}
-          onShare={handleShare}
-        />
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-pulse text-kitchen-green">Loading shopping list...</div>
+          </div>
+        ) : (
+          <ShoppingList
+            items={shoppingItems}
+            onToggle={handleToggle}
+            onDelete={handleDelete}
+            onAddNew={handleAddNew}
+            onClearChecked={handleClearChecked}
+            onShare={handleShare}
+          />
+        )}
       </main>
       
       <Footer />

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChefHat, RefrigeratorIcon, Plus, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,11 +14,16 @@ import ChefTile from '@/components/home/ChefTile';
 
 import { getExpiringSoonItems } from '@/lib/data';
 import { useSpaces } from '@/hooks/use-spaces';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const Index = () => {
   const navigate = useNavigate();
   const { spaces } = useSpaces();
-  const expiringSoonItems = getExpiringSoonItems(7);
+  const [expiringSoonItems, setExpiringSoonItems] = useState(getExpiringSoonItems(7));
   
   // Animation variants
   const containerVariants = {
@@ -40,6 +45,49 @@ const Index = () => {
       transition: { type: "spring", stiffness: 100 }
     }
   };
+
+  // Fetch expiring soon items from Supabase
+  useEffect(() => {
+    const fetchExpiringSoonItems = async () => {
+      if (!supabase) return;
+      
+      try {
+        const today = new Date();
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(today.getDate() + 7);
+        
+        const { data, error } = await supabase
+          .from('pantry_items')
+          .select('id, name, expiry_date, image_url')
+          .lt('expiry_date', oneWeekLater.toISOString())
+          .gt('expiry_date', today.toISOString())
+          .order('expiry_date', { ascending: true });
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const items = data.map(item => {
+            const expiryDate = new Date(item.expiry_date);
+            const diffTime = expiryDate.getTime() - today.getTime();
+            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            return {
+              id: item.id,
+              name: item.name,
+              daysLeft,
+              image: item.image_url
+            };
+          });
+          
+          setExpiringSoonItems(items);
+        }
+      } catch (error) {
+        console.error('Error fetching expiring soon items:', error);
+      }
+    };
+    
+    fetchExpiringSoonItems();
+  }, []);
 
   return (
     <motion.div 
@@ -80,7 +128,7 @@ const Index = () => {
               icon={ChefHat}
               to="/recipes"
               variant="primary"
-              className="h-40"
+              className="h-40 bg-gradient-to-tr from-kitchen-green/90 to-kitchen-green"
             />
           </motion.div>
           
@@ -93,7 +141,7 @@ const Index = () => {
               icon={RefrigeratorIcon}
               to="/pantry"
               variant="secondary"
-              className="h-32"
+              className="h-32 bg-gradient-to-br from-kitchen-wood to-kitchen-stone"
             />
           </motion.div>
           
@@ -106,7 +154,7 @@ const Index = () => {
               icon={Plus}
               to="/pantry?action=add"
               variant="accent"
-              className="h-32"
+              className="h-32 bg-gradient-to-br from-kitchen-berry/90 to-kitchen-berry"
             />
           </motion.div>
           
@@ -120,7 +168,7 @@ const Index = () => {
               icon={ShoppingCart}
               to="/shopping-list"
               variant="secondary"
-              className="h-32"
+              className="h-32 bg-gradient-to-br from-blue-500/80 to-blue-600"
             />
           </motion.div>
         </motion.div>
