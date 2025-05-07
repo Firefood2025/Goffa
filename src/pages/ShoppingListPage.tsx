@@ -100,9 +100,12 @@ const ShoppingListPage = () => {
   };
   
   const handleDelete = async (id: string) => {
+    // Define deletedItem outside the try-catch block so it's accessible in both blocks
+    let deletedItem: ShoppingItemData | undefined;
+    
     try {
       // Store the item to be deleted before removing it from the state
-      const deletedItem = shoppingItems.find(item => item.id === id);
+      deletedItem = shoppingItems.find(item => item.id === id);
       
       // Optimistic UI update
       setShoppingItems(items => items.filter(item => item.id !== id));
