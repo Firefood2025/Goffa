@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Chef } from '@/pages/RentChefPage';
-import { Button } from '@/components/ui/button';
+import { Chef } from '@/types/chef';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
@@ -21,14 +20,6 @@ interface ChefGalleryProps {
 
 export const ChefGallery: React.FC<ChefGalleryProps> = ({ chef, onClose }) => {
   const [activeImage, setActiveImage] = useState(0);
-
-  const nextImage = () => {
-    setActiveImage((prev) => (prev === chef.gallery.length - 1 ? 0 : prev + 1));
-  };
-
-  const prevImage = () => {
-    setActiveImage((prev) => (prev === 0 ? chef.gallery.length - 1 : prev - 1));
-  };
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
@@ -60,6 +51,11 @@ export const ChefGallery: React.FC<ChefGalleryProps> = ({ chef, onClose }) => {
                         src={image} 
                         alt={`${chef.name}'s dish ${index + 1}`} 
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = "https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
+                        }}
                       />
                     </div>
                   </div>
@@ -71,7 +67,7 @@ export const ChefGallery: React.FC<ChefGalleryProps> = ({ chef, onClose }) => {
           </Carousel>
           
           {/* Thumbnails with active state */}
-          <div className="grid grid-cols-4 gap-2 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
             {chef.gallery.map((image, index) => (
               <motion.div 
                 key={index} 
@@ -88,6 +84,11 @@ export const ChefGallery: React.FC<ChefGalleryProps> = ({ chef, onClose }) => {
                   className={`w-full h-full object-cover transition-all duration-300 ${
                     activeImage === index ? 'brightness-100' : 'brightness-90 hover:brightness-100'
                   }`}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = "https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
+                  }}
                 />
               </motion.div>
             ))}

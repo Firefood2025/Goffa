@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Chef } from '@/pages/RentChefPage';
+import { Chef } from '@/types/chef';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -41,6 +41,11 @@ export const ChefBookingForm: React.FC<ChefBookingFormProps> = ({
               src={chef.image} 
               alt={chef.name} 
               className="w-16 h-16 rounded-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.src = "https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
+              }}
             />
             <div>
               <h3 className="font-semibold">{chef.name}</h3>

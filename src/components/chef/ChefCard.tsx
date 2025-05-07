@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, MapPin, Star, Utensils } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { Chef } from "@/pages/RentChefPage";
+import { Chef } from "@/types/chef";
 
 interface ChefCardProps {
   chef: Chef;
@@ -20,6 +20,11 @@ export const ChefCard: React.FC<ChefCardProps> = ({ chef, onBookNow, onViewGalle
           src={chef.image} 
           alt={chef.name} 
           className="w-full h-48 object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = "https://images.unsplash.com/photo-1556911073-38141963c9e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
+          }}
         />
         <div className="absolute top-2 right-2">
           <Badge variant="secondary" className="bg-white text-kitchen-dark font-medium flex items-center gap-1">
