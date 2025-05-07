@@ -106,6 +106,7 @@ const ShoppingListPage = () => {
     try {
       // Store the item to be deleted before removing it from the state
       deletedItem = shoppingItems.find(item => item.id === id);
+      if (!deletedItem) return;
       
       // Optimistic UI update
       setShoppingItems(items => items.filter(item => item.id !== id));
@@ -140,16 +141,16 @@ const ShoppingListPage = () => {
     }
   };
   
-  const handleAddNew = async () => {
-    // Create a new item 
+  const handleAddNew = async (newItemData: Partial<ShoppingItemData>) => {
+    // Create a new item with the provided data
     const newItem: ShoppingItemData = {
       id: `new-${Date.now()}`,
-      name: 'New Item',
-      quantity: 1,
-      unit: 'pc',
-      category: 'General',
-      isChecked: false,
-      note: 'Click to edit'
+      name: newItemData.name || 'New Item',
+      quantity: newItemData.quantity || 1,
+      unit: newItemData.unit || 'pc',
+      category: newItemData.category || 'General',
+      isChecked: newItemData.isChecked || false,
+      note: newItemData.note
     };
     
     try {
@@ -167,7 +168,7 @@ const ShoppingListPage = () => {
       
       toast({
         title: "Item added",
-        description: "New item has been added to your shopping list",
+        description: `${newItem.name} has been added to your shopping list`,
         duration: 3000,
       });
     } catch (error) {

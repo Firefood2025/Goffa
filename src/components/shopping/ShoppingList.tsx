@@ -2,18 +2,39 @@
 import React, { useState } from 'react';
 import ShoppingItem, { ShoppingItemData } from './ShoppingItem';
 import { Button } from '@/components/ui/button';
-import { Plus, Share2, Trash2 } from 'lucide-react';
+import { Plus, Share2, Trash2, Import } from 'lucide-react';
 import { ListLayout, ViewMode } from '@/components/ui/list-layout';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 interface ShoppingListProps {
   items: ShoppingItemData[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onAddNew: () => void;
+  onAddNew: (item: Partial<ShoppingItemData>) => void;
   onClearChecked: () => void;
   onShare: () => void;
 }
+
+const formSchema = z.object({
+  name: z.string().min(1, "Item name is required"),
+  quantity: z.number().min(1, "Quantity must be at least 1"),
+  unit: z.string().default("pc"),
+  category: z.string().default("General"),
+  note: z.string().optional(),
+});
 
 const ShoppingList: React.FC<ShoppingListProps> = ({ 
   items, 
@@ -24,7 +45,33 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
   onShare
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      quantity: 1,
+      unit: "pc",
+      category: "General",
+      note: "",
+    },
+  });
+
+  const handleAddItem = (values: z.infer<typeof formSchema>) => {
+    onAddNew({
+      name: values.name,
+      quantity: values.quantity,
+      unit: values.unit,
+      category: values.category,
+      note: values.note || undefined,
+      isChecked: false,
+    });
+    
+    form.reset();
+    setIsAddDialogOpen(false);
+  };
   
   // Group items by category
   const groupedItems = items.reduce((acc, item) => {
@@ -46,12 +93,111 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
       <div className="sticky top-0 bg-white/80 backdrop-blur-sm z-10 pb-2">
         <div className="flex justify-between items-center mb-4">
           <div className="flex space-x-2">
-            <Button 
-              onClick={onAddNew} 
-              className="bg-kitchen-green hover:bg-kitchen-green/90"
-            >
-              <Plus size={18} className="mr-1" /> Add Item
-            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="bg-kitchen-green hover:bg-kitchen-green/90"
+                >
+                  <Plus size={18} className="mr-1" /> Add Item
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Shopping Item</DialogTitle>
+                </DialogHeader>
+                
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleAddItem)} className="space-y-4 py-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Item Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter item name" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex gap-4">
+                      <FormField
+                        control={form.control}
+                        name="quantity"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>Quantity</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                min="1" 
+                                {...field}
+                                onChange={e => field.onChange(parseInt(e.target.value))}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="unit"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>Unit</FormLabel>
+                            <FormControl>
+                              <Input placeholder="pc, kg, lbs" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Produce, Dairy, Meat, etc." 
+                              {...field} 
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="note"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Note (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Any special notes" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <DialogFooter>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setIsAddDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit">Add to List</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+            
             <Button 
               variant="outline" 
               size="icon" 
@@ -86,7 +232,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
           <div className="p-8 text-center text-gray-500">
             <p className="mb-4">Your shopping list is empty.</p>
             <Button 
-              onClick={onAddNew} 
+              onClick={() => setIsAddDialogOpen(true)} 
               variant="outline"
               className="border-kitchen-green text-kitchen-green hover:bg-kitchen-green hover:text-white"
             >
