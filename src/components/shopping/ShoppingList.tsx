@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import ShoppingItem, { ShoppingItemData } from './ShoppingItem';
 import { Button } from '@/components/ui/button';
 import { Plus, Share2, Trash2 } from 'lucide-react';
 import { ListLayout, ViewMode } from '@/components/ui/list-layout';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@supabase/supabase-js';
 
 interface ShoppingListProps {
   items: ShoppingItemData[];
@@ -16,11 +15,6 @@ interface ShoppingListProps {
   onShare: () => void;
 }
 
-// Initialize Supabase client (will use environment variables if available)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
-
 const ShoppingList: React.FC<ShoppingListProps> = ({ 
   items, 
   onToggle, 
@@ -30,44 +24,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
   onShare
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const { toast } = useToast();
-  
-  // Function to share shopping list with family members
-  const handleShareWithFamily = async () => {
-    try {
-      if (supabase) {
-        // In a real app, this would share with actual family members
-        // For now, we'll just simulate the sharing process
-        const { data: familyMembers } = await supabase
-          .from('family_members')
-          .select('id, name, email');
-          
-        if (familyMembers && familyMembers.length > 0) {
-          // Simulate sharing with first family member
-          toast({
-            title: "List shared",
-            description: `Shopping list shared with ${familyMembers[0].name}`,
-          });
-        } else {
-          toast({
-            title: "No family members",
-            description: "Add family members in settings to share lists",
-          });
-        }
-      } else {
-        // Fallback for when Supabase isn't connected
-        onShare();
-      }
-    } catch (error) {
-      console.error('Error sharing list:', error);
-      toast({
-        title: "Sharing failed",
-        description: "Could not share list, please try again",
-        variant: "destructive",
-      });
-    }
-  };
   
   // Group items by category
   const groupedItems = items.reduce((acc, item) => {
@@ -98,7 +55,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
             <Button 
               variant="outline" 
               size="icon" 
-              onClick={handleShareWithFamily}
+              onClick={onShare}
               className="border-kitchen-green text-kitchen-green"
             >
               <Share2 size={16} />
