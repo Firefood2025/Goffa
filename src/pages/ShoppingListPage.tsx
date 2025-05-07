@@ -101,8 +101,10 @@ const ShoppingListPage = () => {
   
   const handleDelete = async (id: string) => {
     try {
-      // Optimistic UI update
+      // Store the item to be deleted before removing it from the state
       const deletedItem = shoppingItems.find(item => item.id === id);
+      
+      // Optimistic UI update
       setShoppingItems(items => items.filter(item => item.id !== id));
       
       // Delete from database if Supabase is available
@@ -128,7 +130,7 @@ const ShoppingListPage = () => {
         variant: 'destructive',
       });
       
-      // Revert the optimistic update on error
+      // Revert the optimistic update on error if we have the deletedItem
       if (deletedItem) {
         setShoppingItems(prev => [...prev, deletedItem]);
       }
