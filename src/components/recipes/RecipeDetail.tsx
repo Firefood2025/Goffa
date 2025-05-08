@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Clock, ChefHat, Utensils, Share2, Copy, CheckCircle, ShoppingCart, Plus, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface GeneratedRecipe {
   id?: string;
@@ -34,13 +33,6 @@ interface RecipeDetailProps {
   onToggleFavorite?: () => void;
 }
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
-
 const RecipeDetail: React.FC<RecipeDetailProps> = ({ 
   recipe, 
   onTryAnother,
@@ -58,25 +50,23 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
   useEffect(() => {
     const fetchPantryItems = async () => {
       try {
-        if (supabase) {
-          const { data } = await supabase
-            .from('pantry_items')
-            .select('name');
+        const { data } = await supabase
+          .from('pantry_items')
+          .select('name');
+        
+        if (data) {
+          const itemNames = data.map(item => item.name.toLowerCase());
+          setPantryItems(itemNames);
           
-          if (data) {
-            const itemNames = data.map(item => item.name.toLowerCase());
-            setPantryItems(itemNames);
+          // Identify missing ingredients
+          const missing = recipe.ingredients
+            .filter(ingredient => !itemNames.includes(ingredient.toLowerCase()))
+            .map((ingredient, index) => ({
+              ingredient,
+              measurement: recipe.measurements?.[index]
+            }));
             
-            // Identify missing ingredients
-            const missing = recipe.ingredients
-              .filter(ingredient => !itemNames.includes(ingredient.toLowerCase()))
-              .map((ingredient, index) => ({
-                ingredient,
-                measurement: recipe.measurements?.[index]
-              }));
-              
-            setMissingIngredients(missing);
-          }
+          setMissingIngredients(missing);
         }
       } catch (error) {
         console.error('Error fetching pantry items:', error);
@@ -162,54 +152,45 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
     }
 
     try {
-      if (supabase) {
-        // Get current shopping list to avoid duplicates
-        const { data: existingItems } = await supabase
+      // Get current shopping list to avoid duplicates
+      const { data: existingItems } = await supabase
+        .from('shopping_list')
+        .select('name');
+      
+      const existingNames = existingItems?.map(item => item.name.toLowerCase()) || [];
+      
+      // Filter out any ingredients already in the shopping list
+      const newIngredients = selectedIngredients.filter(
+        ingredient => !existingNames.includes(ingredient.toLowerCase())
+      );
+      
+      if (newIngredients.length > 0) {
+        // Add new ingredients to shopping list
+        const { error } = await supabase
           .from('shopping_list')
-          .select('name');
+          .insert(
+            newIngredients.map(ingredient => ({
+              name: ingredient,
+              category: 'Recipe Ingredients',
+              quantity: '1',
+              isChecked: false
+            }))
+          );
         
-        const existingNames = existingItems?.map(item => item.name.toLowerCase()) || [];
+        if (error) throw error;
         
-        // Filter out any ingredients already in the shopping list
-        const newIngredients = selectedIngredients.filter(
-          ingredient => !existingNames.includes(ingredient.toLowerCase())
-        );
-        
-        if (newIngredients.length > 0) {
-          // Add new ingredients to shopping list
-          const { error } = await supabase
-            .from('shopping_list')
-            .insert(
-              newIngredients.map(ingredient => ({
-                name: ingredient,
-                category: 'Recipe Ingredients',
-                quantity: '1',
-                isChecked: false
-              }))
-            );
-          
-          if (error) throw error;
-          
-          toast({
-            title: "Added to shopping list",
-            description: `${newIngredients.length} ingredient${newIngredients.length > 1 ? 's' : ''} added to your shopping list`,
-          });
-          
-          // Navigate to shopping list page
-          navigate('/shopping-list');
-        } else {
-          toast({
-            title: "Ingredients already in list",
-            description: "All selected ingredients are already in your shopping list",
-          });
-        }
-      } else {
-        // Fallback for when Supabase is not available
         toast({
           title: "Added to shopping list",
-          description: `${selectedIngredients.length} ingredient${selectedIngredients.length > 1 ? 's' : ''} would be added to your shopping list`,
+          description: `${newIngredients.length} ingredient${newIngredients.length > 1 ? 's' : ''} added to your shopping list`,
         });
+        
+        // Navigate to shopping list page
         navigate('/shopping-list');
+      } else {
+        toast({
+          title: "Ingredients already in list",
+          description: "All selected ingredients are already in your shopping list",
+        });
       }
     } catch (error) {
       console.error('Error adding to shopping list:', error);

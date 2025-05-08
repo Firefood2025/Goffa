@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExpiringSoonItem {
   id: string;
@@ -15,10 +15,6 @@ interface ExpiringSoonSectionProps {
   items: ExpiringSoonItem[];
 }
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
-
 const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propItems }) => {
   const [items, setItems] = useState<ExpiringSoonItem[]>(propItems);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,36 +22,34 @@ const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propIt
   useEffect(() => {
     const fetchExpiringSoonItems = async () => {
       try {
-        if (supabase) {
-          const today = new Date();
-          const oneWeekLater = new Date();
-          oneWeekLater.setDate(today.getDate() + 7);
+        const today = new Date();
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(today.getDate() + 7);
+        
+        const { data, error } = await supabase
+          .from('pantry_items')
+          .select('id, name, expiry_date, image_url')
+          .lt('expiry_date', oneWeekLater.toISOString())
+          .gt('expiry_date', today.toISOString())
+          .order('expiry_date', { ascending: true });
           
-          const { data, error } = await supabase
-            .from('pantry_items')
-            .select('id, name, expiry_date, image_url')
-            .lt('expiry_date', oneWeekLater.toISOString())
-            .gt('expiry_date', today.toISOString())
-            .order('expiry_date', { ascending: true });
+        if (error) throw error;
+        
+        if (data) {
+          const expiringSoonItems = data.map(item => {
+            const expiryDate = new Date(item.expiry_date);
+            const diffTime = expiryDate.getTime() - today.getTime();
+            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
-          if (error) throw error;
+            return {
+              id: item.id,
+              name: item.name,
+              daysLeft: daysLeft,
+              image: item.image_url
+            };
+          });
           
-          if (data) {
-            const expiringSoonItems = data.map(item => {
-              const expiryDate = new Date(item.expiry_date);
-              const diffTime = expiryDate.getTime() - today.getTime();
-              const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              
-              return {
-                id: item.id,
-                name: item.name,
-                daysLeft: daysLeft,
-                image: item.image_url
-              };
-            });
-            
-            setItems(expiringSoonItems);
-          }
+          setItems(expiringSoonItems);
         } else {
           // Use the props items as fallback
           setItems(propItems);

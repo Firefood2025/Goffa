@@ -1,14 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@supabase/supabase-js';
 import { ShoppingItemData } from '@/components/shopping/ShoppingItem';
 import { mockShoppingItems } from '@/lib/data';
-
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+import { supabase } from '@/integrations/supabase/client';
 
 export function useShoppingList() {
   const { toast } = useToast();
@@ -20,16 +15,14 @@ export function useShoppingList() {
   useEffect(() => {
     const fetchShoppingItems = async () => {
       try {
-        if (supabase) {
-          const { data, error } = await supabase
-            .from('shopping_list')
-            .select('*');
-          
-          if (error) throw error;
-          
-          if (data) {
-            setShoppingItems(data as ShoppingItemData[]);
-          }
+        const { data, error } = await supabase
+          .from('shopping_list')
+          .select('*');
+        
+        if (error) throw error;
+        
+        if (data) {
+          setShoppingItems(data as ShoppingItemData[]);
         } else {
           // Use mock data as fallback
           setShoppingItems(mockShoppingItems);
@@ -67,14 +60,12 @@ export function useShoppingList() {
       );
       
       // Update in database if Supabase is available
-      if (supabase) {
-        const { error } = await supabase
-          .from('shopping_list')
-          .update({ isChecked: updatedItem.isChecked })
-          .eq('id', id);
-          
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('shopping_list')
+        .update({ isChecked: updatedItem.isChecked })
+        .eq('id', id);
+        
+      if (error) throw error;
     } catch (error) {
       console.error('Error toggling item:', error);
       toast({
@@ -105,14 +96,12 @@ export function useShoppingList() {
       setShoppingItems(items => items.filter(item => item.id !== id));
       
       // Delete from database if Supabase is available
-      if (supabase) {
-        const { error } = await supabase
-          .from('shopping_list')
-          .delete()
-          .eq('id', id);
-          
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('shopping_list')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
       
       toast({
         title: "Item removed",
@@ -151,13 +140,11 @@ export function useShoppingList() {
       setShoppingItems(items => [...items, newItem]);
       
       // Add to database if Supabase is available
-      if (supabase) {
-        const { error } = await supabase
-          .from('shopping_list')
-          .insert([newItem]);
-          
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('shopping_list')
+        .insert([newItem]);
+        
+      if (error) throw error;
       
       toast({
         title: "Item added",
@@ -189,14 +176,12 @@ export function useShoppingList() {
       setShoppingItems(items => items.filter(item => !item.isChecked));
       
       // Delete from database if Supabase is available
-      if (supabase) {
-        const { error } = await supabase
-          .from('shopping_list')
-          .delete()
-          .in('id', checkedItemIds);
-          
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('shopping_list')
+        .delete()
+        .in('id', checkedItemIds);
+        
+      if (error) throw error;
       
       toast({
         title: "Checked items cleared",
@@ -212,11 +197,9 @@ export function useShoppingList() {
       });
       
       // If there's an error, we should reload the list
-      if (supabase) {
-        const { data } = await supabase.from('shopping_list').select('*');
-        if (data) {
-          setShoppingItems(data as ShoppingItemData[]);
-        }
+      const { data } = await supabase.from('shopping_list').select('*');
+      if (data) {
+        setShoppingItems(data as ShoppingItemData[]);
       }
     }
   };

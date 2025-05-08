@@ -14,11 +14,7 @@ import ChefTile from '@/components/home/ChefTile';
 
 import { getExpiringSoonItems } from '@/lib/data';
 import { useSpaces } from '@/hooks/use-spaces';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -49,8 +45,6 @@ const Index = () => {
   // Fetch expiring soon items from Supabase
   useEffect(() => {
     const fetchExpiringSoonItems = async () => {
-      if (!supabase) return;
-      
       try {
         const today = new Date();
         const oneWeekLater = new Date();

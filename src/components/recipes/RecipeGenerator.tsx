@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Utensils, ChefHat } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RecipeGeneratorProps {
   onGenerate: (ingredients: string[]) => Promise<void>;
@@ -30,14 +32,8 @@ const RecipeGenerator: React.FC<RecipeGeneratorProps> = ({
   React.useEffect(() => {
     async function fetchPantry() {
       try {
-        const url = import.meta.env.VITE_SUPABASE_URL;
-        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        if (url && key) {
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabase = createClient(url, key);
-          const { data } = await supabase.from('pantry_items').select('name');
-          if (data) setPantryIngredients(data.map(p => p.name));
-        }
+        const { data } = await supabase.from('pantry_items').select('name');
+        if (data) setPantryIngredients(data.map(p => p.name));
       } catch (e) {
         setPantryIngredients([]);
       }

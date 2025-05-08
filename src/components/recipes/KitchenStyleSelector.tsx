@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export type KitchenStyle = 
   | 'Italian' | 'Asian' | 'Mediterranean' | 'Vegan' | 'Indian' | 'Mexican' | 'French'
@@ -14,21 +15,6 @@ export type KitchenStyle =
 interface KitchenStyleSelectorProps {
   selectedStyle: KitchenStyle;
   onSelect: (style: KitchenStyle) => void;
-}
-
-// For Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-let supabase = null;
-try {
-  if (supabaseUrl && supabaseAnonKey) {
-    // Dynamically require to avoid SSR issues
-    // @ts-ignore
-    const { createClient } = require('@supabase/supabase-js');
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  }
-} catch (err) {
-  console.error("Error setting up Supabase in KitchenStyleSelector", err);
 }
 
 const fallbackStyles: KitchenStyle[] = [
@@ -50,7 +36,6 @@ const KitchenStyleSelector: React.FC<KitchenStyleSelectorProps> = ({
 
   useEffect(() => {
     const fetchKitchenStyles = async () => {
-      if (!supabase) return;
       setLoadingStyles(true);
       try {
         const { data, error } = await supabase.from('kitchen_styles').select('name');
