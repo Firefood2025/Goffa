@@ -6,6 +6,8 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import SplashScreen from "./components/home/SplashScreen";
 import Index from "./pages/Index";
 import PantryPage from "./pages/PantryPage";
 import RecipesPage from "./pages/RecipesPage";
@@ -26,6 +28,25 @@ const queryClient = new QueryClient();
 // Animated routes with framer-motion
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const [showSplash, setShowSplash] = useState(true);
+  
+  useEffect(() => {
+    // Check if the splash screen has been shown in this session
+    const splashShown = sessionStorage.getItem('splashScreenShown');
+    
+    if (splashShown) {
+      setShowSplash(false);
+    }
+  }, []);
+  
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('splashScreenShown', 'true');
+    setShowSplash(false);
+  };
+  
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
   
   return (
     <AnimatePresence mode="wait">
