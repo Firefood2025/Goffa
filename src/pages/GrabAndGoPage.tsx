@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Check, Plus, ShoppingBag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { Button } from '@/components/ui/button';
 import { ShoppingItemData } from '@/components/shopping/ShoppingItem';
@@ -24,13 +25,14 @@ const GrabAndGoPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // State for items in Grab & Go mode
   const [shoppingItems, setShoppingItems] = useState<ShoppingItemData[]>(
     mockShoppingItems.filter(item => !item.isChecked)
   );
 
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? 'list' : 'grid');
   
   // Dialog state for import
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -51,7 +53,14 @@ const GrabAndGoPage = () => {
         });
       }
     }
-  }, [location.state]);
+  }, [location.state, shoppingItems, toast]);
+
+  // Update viewMode based on screen size
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode('list');
+    }
+  }, [isMobile]);
 
   // Handler functions
   const handleToggle = (id: string) => {
@@ -113,19 +122,17 @@ const GrabAndGoPage = () => {
       date: new Date().toISOString(),
     };
     
-    // Here you could save to database/localStorage
-    
-    toast({
-      title: "List Created",
-      description: `Created "${newListName}" with ${checkedItems.length} items`,
-      duration: 2000,
-    });
-    
     // Navigate to shopping list with the new list data
     navigate('/shopping-list', { 
       state: { 
         newList: listData 
       }
+    });
+    
+    toast({
+      title: "List Created",
+      description: `Created "${newListName}" with ${checkedItems.length} items`,
+      duration: 2000,
     });
   };
 
@@ -182,12 +189,12 @@ const GrabAndGoPage = () => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="bg-kitchen-green text-white px-4 py-3 shadow-md sticky top-0 z-10"
+        className="bg-kitchen-green text-white px-3 md:px-4 py-3 shadow-md sticky top-0 z-10"
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center">
             <ShoppingBag size={24} className="mr-2" />
-            <h1 className="text-xl font-bold">Grab &amp; Go Mode</h1>
+            <h1 className="text-lg md:text-xl font-bold">Grab &amp; Go Mode</h1>
           </div>
           <motion.button 
             whileHover={{ scale: 1.1 }}
@@ -196,7 +203,7 @@ const GrabAndGoPage = () => {
             className="p-2 rounded-full hover:bg-white/20 transition-colors"
             aria-label="Exit Grab &amp; Go mode"
           >
-            <X size={24} />
+            <X size={isMobile ? 20 : 24} />
           </motion.button>
         </div>
       </motion.header>
@@ -205,22 +212,22 @@ const GrabAndGoPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
-        className="flex-1 px-4 py-6 mb-20 max-w-4xl mx-auto w-full overflow-hidden"
+        className="flex-1 px-3 md:px-4 py-4 md:py-6 mb-20 max-w-4xl mx-auto w-full overflow-hidden"
       >
         {shoppingItems.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="text-center py-10 bg-white/80 rounded-xl shadow-sm mt-4 backdrop-blur-sm"
+            className="text-center py-6 md:py-10 bg-white/80 rounded-xl shadow-sm mt-4 backdrop-blur-sm"
           >
-            <p className="text-xl mb-4">Your shopping list is empty</p>
+            <p className="text-lg md:text-xl mb-4">Your shopping list is empty</p>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button 
                 onClick={handleQuickAdd}
-                className="bg-kitchen-green hover:bg-kitchen-green/90 text-lg py-6 px-8 transition-transform duration-200"
+                className="bg-kitchen-green hover:bg-kitchen-green/90 text-base md:text-lg py-4 md:py-6 px-6 md:px-8 transition-transform duration-200"
               >
-                <Plus size={24} className="mr-2" />
+                <Plus size={isMobile ? 20 : 24} className="mr-2" />
                 Import Items
               </Button>
             </motion.div>
@@ -229,26 +236,26 @@ const GrabAndGoPage = () => {
           <ListLayout
             title="Shopping Items"
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
+            onViewModeChange={!isMobile ? setViewMode : undefined}
             className="mt-4"
           >
             <motion.div 
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="space-y-6 pb-16"
+              className="space-y-4 md:space-y-6 pb-16"
             >
               {sortedCategories.map(category => (
-                <motion.div key={category} className="mb-6" variants={itemVariants}>
-                  <h2 className="text-xl font-bold mb-3 px-2 text-kitchen-dark">{category}</h2>
-                  <div className={`${viewMode === 'list' ? 'space-y-2' : 'grid grid-cols-2 gap-3'}`}>
+                <motion.div key={category} className="mb-4 md:mb-6" variants={itemVariants}>
+                  <h2 className="text-lg md:text-xl font-bold mb-2 md:mb-3 px-2 text-kitchen-dark">{category}</h2>
+                  <div className={`${viewMode === 'list' ? 'space-y-2' : 'grid grid-cols-1 sm:grid-cols-2 gap-3'}`}>
                     <AnimatePresence>
                       {groupedItems[category].map(item => (
                         <motion.div 
                           key={item.id}
                           className={`
                             bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden
-                            ${viewMode === 'list' ? 'flex items-center p-4' : 'p-4 flex flex-col items-center text-center'}
+                            ${viewMode === 'list' ? 'flex items-center p-3 md:p-4' : 'p-3 md:p-4 flex flex-col items-center text-center'}
                           `}
                           variants={itemVariants}
                           whileHover={{ scale: 1.02 }}
@@ -258,29 +265,29 @@ const GrabAndGoPage = () => {
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleToggle(item.id)}
                             className={`
-                              flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center
+                              flex-shrink-0 w-6 h-6 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center
                               transition-colors duration-300
-                              ${viewMode === 'list' ? 'mr-4' : 'mb-3'}
+                              ${viewMode === 'list' ? 'mr-3 md:mr-4' : 'mb-2 md:mb-3'}
                               ${item.isChecked 
                                 ? 'bg-kitchen-green border-kitchen-green text-white' 
                                 : 'border-gray-300 hover:border-gray-400 transition-colors'}
                             `}
                             aria-label={item.isChecked ? "Uncheck item" : "Check item"}
                           >
-                            {item.isChecked && <Check size={18} />}
+                            {item.isChecked && <Check size={isMobile ? 14 : 18} />}
                           </motion.button>
                           
                           <div className={viewMode === 'list' ? 'flex-1' : 'w-full'}>
-                            <h3 className={`text-lg font-medium ${item.isChecked ? 'text-gray-400 line-through' : 'text-kitchen-dark'}`}>
+                            <h3 className={`text-base md:text-lg font-medium ${item.isChecked ? 'text-gray-400 line-through' : 'text-kitchen-dark'}`}>
                               {item.name}
                             </h3>
                             
                             {item.note && (
-                              <p className="text-sm text-gray-500 mt-1">{item.note}</p>
+                              <p className="text-xs md:text-sm text-gray-500 mt-1">{item.note}</p>
                             )}
                           </div>
                           
-                          <span className={`text-base ${item.isChecked ? 'text-gray-400' : 'text-kitchen-dark'} ${viewMode === 'grid' ? 'mt-2' : ''}`}>
+                          <span className={`text-sm md:text-base ${item.isChecked ? 'text-gray-400' : 'text-kitchen-dark'} ${viewMode === 'grid' ? 'mt-2' : ''}`}>
                             {item.quantity} {item.unit}
                           </span>
                         </motion.div>
@@ -295,7 +302,7 @@ const GrabAndGoPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="mt-8 flex justify-center"
+                  className="mt-6 md:mt-8 flex justify-center"
                 >
                   <Button 
                     onClick={handleCreateList}
@@ -315,7 +322,7 @@ const GrabAndGoPage = () => {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5, type: "spring" }}
-        className="fixed bottom-8 right-6 drop-shadow-lg transition-all z-50"
+        className="fixed bottom-20 md:bottom-8 right-4 md:right-6 drop-shadow-lg transition-all z-50"
       >
         <motion.div
           whileHover={{ scale: 1.1 }}
@@ -323,19 +330,19 @@ const GrabAndGoPage = () => {
         >
           <Button
             onClick={handleQuickAdd}
-            className="bg-kitchen-green text-white w-16 h-16 rounded-full flex items-center justify-center hover:bg-kitchen-green/90 transition-transform duration-300 shadow-2xl"
+            className="bg-kitchen-green text-white w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center hover:bg-kitchen-green/90 transition-transform duration-300 shadow-2xl"
             size="icon"
             aria-label="Import items to Grab & Go"
             style={{ boxShadow: '0 8px 20px rgba(68, 130, 74, 0.15)' }}
           >
-            <Plus size={32} />
+            <Plus size={isMobile ? 26 : 32} />
           </Button>
         </motion.div>
       </motion.div>
       
       {/* Import Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className={isMobile ? "max-w-[90%] p-4" : "max-w-sm"}>
           <DialogHeader>
             <DialogTitle>Import Items to Grab &amp; Go</DialogTitle>
             <DialogDescription>
@@ -369,8 +376,12 @@ const GrabAndGoPage = () => {
               ))
             )}
           </motion.div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
+          <DialogFooter className={isMobile ? "flex-col" : ""}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowImportDialog(false)}
+              className={isMobile ? "w-full mt-2" : ""}
+            >
               Cancel
             </Button>
           </DialogFooter>

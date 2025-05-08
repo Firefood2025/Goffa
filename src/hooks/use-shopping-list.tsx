@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingItemData } from '@/components/shopping/ShoppingItem';
 import { mockShoppingItems } from '@/lib/data';
@@ -7,9 +8,35 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function useShoppingList() {
   const { toast } = useToast();
+  const location = useLocation();
   
   const [shoppingItems, setShoppingItems] = useState<ShoppingItemData[]>(mockShoppingItems);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Handle items passed from Grab & Go mode or other routes
+  useEffect(() => {
+    if (location.state) {
+      if (location.state.newList) {
+        const { newList } = location.state;
+        
+        if (newList.items && newList.items.length > 0) {
+          // Set the new shopping list items from the passed state
+          setShoppingItems(prev => {
+            // Merge with existing items, avoid duplicates by name
+            const existingNames = new Set(prev.map(item => item.name));
+            const newItems = newList.items.filter(item => !existingNames.has(item.name));
+            return [...prev, ...newItems];
+          });
+          
+          toast({
+            title: `List "${newList.name}" loaded`,
+            description: `Added ${newList.items.length} items from Grab & Go mode`,
+            duration: 3000,
+          });
+        }
+      }
+    }
+  }, [location.state, toast]);
   
   // Fetch items from Supabase if available
   useEffect(() => {

@@ -5,9 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import ShoppingList from '@/components/shopping/ShoppingList';
 import ShoppingListLayout from '@/components/shopping/ShoppingListLayout';
 import { useShoppingList } from '@/hooks/use-shopping-list';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const ShoppingListPage = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const { 
     shoppingItems, 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Share2, Trash2, Import } from 'lucide-react';
 import { ListLayout, ViewMode } from '@/components/ui/list-layout';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   Dialog, 
   DialogContent, 
@@ -47,6 +48,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,20 +90,28 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
   // Separate checked and unchecked items
   const hasCheckedItems = items.some(item => item.isChecked);
   
+  // Automatically switch to list view on small screens
+  React.useEffect(() => {
+    if (isMobile) {
+      setViewMode('list');
+    }
+  }, [isMobile]);
+  
   return (
-    <div className="pb-20">
+    <div className="pb-20 md:pb-16">
       <div className="sticky top-0 bg-white/80 backdrop-blur-sm z-10 pb-2">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
           <div className="flex space-x-2">
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
                   className="bg-kitchen-green hover:bg-kitchen-green/90"
+                  size={isMobile ? "sm" : "default"}
                 >
-                  <Plus size={18} className="mr-1" /> Add Item
+                  <Plus size={isMobile ? 16 : 18} className="mr-1" /> Add Item
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className={isMobile ? "px-3 py-4 w-[95%] max-w-md" : ""}>
                 <DialogHeader>
                   <DialogTitle>Add Shopping Item</DialogTitle>
                 </DialogHeader>
@@ -121,19 +131,19 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
                       )}
                     />
                     
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 flex-wrap sm:flex-nowrap">
                       <FormField
                         control={form.control}
                         name="quantity"
                         render={({ field }) => (
-                          <FormItem className="flex-1">
+                          <FormItem className="flex-1 min-w-[120px]">
                             <FormLabel>Quantity</FormLabel>
                             <FormControl>
                               <Input 
                                 type="number" 
                                 min="1" 
                                 {...field}
-                                onChange={e => field.onChange(parseInt(e.target.value))}
+                                onChange={e => field.onChange(parseInt(e.target.value) || 1)}
                               />
                             </FormControl>
                           </FormItem>
@@ -144,7 +154,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
                         control={form.control}
                         name="unit"
                         render={({ field }) => (
-                          <FormItem className="flex-1">
+                          <FormItem className="flex-1 min-w-[120px]">
                             <FormLabel>Unit</FormLabel>
                             <FormControl>
                               <Input placeholder="pc, kg, lbs" {...field} />
@@ -183,15 +193,16 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
                       )}
                     />
                     
-                    <DialogFooter>
+                    <DialogFooter className={isMobile ? "flex-col space-y-2" : ""}>
                       <Button 
                         type="button" 
                         variant="outline" 
                         onClick={() => setIsAddDialogOpen(false)}
+                        className={isMobile ? "w-full" : ""}
                       >
                         Cancel
                       </Button>
-                      <Button type="submit">Add to List</Button>
+                      <Button type="submit" className={isMobile ? "w-full" : ""}>Add to List</Button>
                     </DialogFooter>
                   </form>
                 </Form>
@@ -200,11 +211,12 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
             
             <Button 
               variant="outline" 
-              size="icon" 
+              size={isMobile ? "sm" : "icon"} 
               onClick={onShare}
               className="border-kitchen-green text-kitchen-green"
             >
-              <Share2 size={16} />
+              <Share2 size={isMobile ? 14 : 16} className={isMobile ? "mr-1" : ""} />
+              {isMobile && "Share"}
             </Button>
           </div>
           
@@ -225,11 +237,11 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
       <ListLayout
         title="Shopping List"
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={!isMobile ? setViewMode : undefined}
         className="bg-gradient-to-br from-kitchen-cream to-white"
       >
         {items.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-4 md:p-8 text-center text-gray-500">
             <p className="mb-4">Your shopping list is empty.</p>
             <Button 
               onClick={() => setIsAddDialogOpen(true)} 
@@ -240,14 +252,14 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
             </Button>
           </div>
         ) : (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : ''}>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4' : ''}>
             {sortedCategories.map(category => {
               const categoryItems = groupedItems[category].filter(item => !item.isChecked);
               if (categoryItems.length === 0) return null;
               
               return (
                 <div key={category} className="mb-2">
-                  <div className="px-4 py-2 bg-muted/50 font-medium text-sm text-gray-600 uppercase">
+                  <div className="px-3 md:px-4 py-2 bg-muted/50 font-medium text-sm text-gray-600 uppercase">
                     {category}
                   </div>
                   <div className={viewMode === 'grid' ? 'grid gap-2' : ''}>
@@ -267,11 +279,11 @@ const ShoppingList: React.FC<ShoppingListProps> = ({
             {/* Checked items section */}
             {hasCheckedItems && (
               <div className="mt-4 col-span-full">
-                <div className="px-4 py-2 bg-muted/50 font-medium text-sm text-gray-600 uppercase flex items-center">
+                <div className="px-3 md:px-4 py-2 bg-muted/50 font-medium text-sm text-gray-600 uppercase flex items-center">
                   <Trash2 size={14} className="mr-2" />
                   Checked Items
                 </div>
-                <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-2' : ''}>
+                <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : ''}>
                   {items
                     .filter(item => item.isChecked)
                     .map(item => (

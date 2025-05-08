@@ -9,7 +9,9 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<any>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Note: We're using `any` as the generic type temporarily to avoid type errors
-// While the database schema gets synchronized with the types
+// Define types to help with code completion and error checking
+export type Tables = Database['public']['Tables'];
+export type ShoppingItem = Tables['shopping_list']['Row'];
+export type PantryItem = Tables['pantry_items']['Row'];
