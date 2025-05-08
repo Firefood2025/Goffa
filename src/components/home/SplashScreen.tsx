@@ -87,11 +87,16 @@ const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
                   scale: [1, 1.1, 1],
                 }}
                 transition={{ duration: 2, ease: "easeInOut" }}
+                className="w-24 h-24 relative"
               >
-                <RefrigeratorIcon size={64} className="text-kitchen-green" />
+                <img 
+                  src="/lovable-uploads/bbdbcad8-e50a-4414-9f49-1ad548d5a3ce.png" 
+                  alt="KOFFA Logo" 
+                  className="w-full h-full object-contain"
+                />
               </motion.div>
             </div>
-            <h1 className="text-3xl font-bold font-heading mb-2">PantryChef</h1>
+            <h1 className="text-3xl font-bold font-heading mb-2">KOFFA</h1>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "60%" }}
@@ -143,8 +148,5 @@ const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
     </AnimatePresence>
   );
 };
-
-// Import the RefrigeratorIcon only once at the top level
-import { RefrigeratorIcon } from 'lucide-react';
 
 export default SplashScreen;
