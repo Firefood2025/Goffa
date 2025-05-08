@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -35,7 +34,7 @@ const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propIt
           
         if (error) throw error;
         
-        if (data) {
+        if (data && data.length > 0) {
           const expiringSoonItems = data.map(item => {
             const expiryDate = new Date(item.expiry_date);
             const diffTime = expiryDate.getTime() - today.getTime();

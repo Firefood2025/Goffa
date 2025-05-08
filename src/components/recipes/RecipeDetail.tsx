@@ -50,12 +50,16 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
   useEffect(() => {
     const fetchPantryItems = async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('pantry_items')
           .select('name');
+          
+        if (error) {
+          throw error;
+        }
         
-        if (data) {
-          const itemNames = data.map(item => item.name.toLowerCase());
+        if (data && Array.isArray(data)) {
+          const itemNames = data.map(item => item.name?.toLowerCase()).filter(Boolean);
           setPantryItems(itemNames);
           
           // Identify missing ingredients
@@ -153,9 +157,13 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
 
     try {
       // Get current shopping list to avoid duplicates
-      const { data: existingItems } = await supabase
+      const { data: existingItems, error } = await supabase
         .from('shopping_list')
         .select('name');
+        
+      if (error) {
+        throw error;
+      }
       
       const existingNames = existingItems?.map(item => item.name.toLowerCase()) || [];
       
@@ -166,18 +174,21 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
       
       if (newIngredients.length > 0) {
         // Add new ingredients to shopping list
-        const { error } = await supabase
-          .from('shopping_list')
-          .insert(
-            newIngredients.map(ingredient => ({
-              name: ingredient,
-              category: 'Recipe Ingredients',
-              quantity: '1',
-              isChecked: false
-            }))
-          );
+        const newItems = newIngredients.map(ingredient => ({
+          name: ingredient,
+          category: 'Recipe Ingredients',
+          quantity: 1,
+          unit: 'pc',
+          isChecked: false
+        }));
         
-        if (error) throw error;
+        const { error: insertError } = await supabase
+          .from('shopping_list')
+          .insert(newItems);
+          
+        if (insertError) {
+          throw insertError;
+        }
         
         toast({
           title: "Added to shopping list",

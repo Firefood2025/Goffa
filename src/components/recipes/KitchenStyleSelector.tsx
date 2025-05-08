@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,16 +37,20 @@ const KitchenStyleSelector: React.FC<KitchenStyleSelectorProps> = ({
     const fetchKitchenStyles = async () => {
       setLoadingStyles(true);
       try {
-        const { data, error } = await supabase.from('kitchen_styles').select('name');
+        const { data, error } = await supabase
+          .from('kitchen_styles')
+          .select('name');
+          
+        if (error) {
+          throw error;
+        }
+        
         if (data && Array.isArray(data) && data.length > 0) {
           // Show all DB styles (no merging/deduplication except removing falsy)
           setDbKitchenStyles(data.map((row: any) => row.name).filter(Boolean));
         } else {
           // fallback to extended local list
           setDbKitchenStyles(fallbackStyles);
-        }
-        if (error) {
-          console.error("Error fetching kitchen styles from DB:", error);
         }
       } catch (err) {
         console.error("KitchenStyleSelector - fetching DB styles:", err);

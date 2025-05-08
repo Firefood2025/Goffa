@@ -21,8 +21,19 @@ export function useShoppingList() {
         
         if (error) throw error;
         
-        if (data) {
-          setShoppingItems(data as ShoppingItemData[]);
+        if (data && data.length > 0) {
+          // Map the data to ShoppingItemData format
+          const mappedData: ShoppingItemData[] = data.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity || 1,
+            unit: item.unit || 'pc',
+            category: item.category || 'General',
+            isChecked: item.isChecked || false,
+            note: item.note
+          }));
+          
+          setShoppingItems(mappedData);
         } else {
           // Use mock data as fallback
           setShoppingItems(mockShoppingItems);
@@ -124,27 +135,51 @@ export function useShoppingList() {
   };
   
   const handleAddNew = async (newItemData: Partial<ShoppingItemData>) => {
-    // Create a new item with the provided data
-    const newItem: ShoppingItemData = {
-      id: `new-${Date.now()}`,
-      name: newItemData.name || 'New Item',
-      quantity: newItemData.quantity || 1,
-      unit: newItemData.unit || 'pc',
-      category: newItemData.category || 'General',
-      isChecked: newItemData.isChecked || false,
-      note: newItemData.note
-    };
-    
     try {
-      // Add to state first (optimistic UI update)
-      setShoppingItems(items => [...items, newItem]);
+      // Create a new item with the provided data
+      const newItem: ShoppingItemData = {
+        id: `new-${Date.now()}`, // Temporary ID
+        name: newItemData.name || 'New Item',
+        quantity: newItemData.quantity || 1,
+        unit: newItemData.unit || 'pc',
+        category: newItemData.category || 'General',
+        isChecked: newItemData.isChecked || false,
+        note: newItemData.note
+      };
       
       // Add to database if Supabase is available
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('shopping_list')
-        .insert([newItem]);
+        .insert({
+          name: newItem.name,
+          quantity: newItem.quantity,
+          unit: newItem.unit,
+          category: newItem.category,
+          isChecked: newItem.isChecked,
+          note: newItem.note
+        })
+        .select('*')
+        .single();
         
       if (error) throw error;
+      
+      // Use the returned item with the proper database ID
+      if (data) {
+        const dbItem: ShoppingItemData = {
+          id: data.id,
+          name: data.name,
+          quantity: data.quantity || 1,
+          unit: data.unit || 'pc',
+          category: data.category || 'General',
+          isChecked: data.isChecked || false,
+          note: data.note
+        };
+        
+        setShoppingItems(items => [...items, dbItem]);
+      } else {
+        // Fallback to using the item with temporary ID
+        setShoppingItems(items => [...items, newItem]);
+      }
       
       toast({
         title: "Item added",
@@ -158,9 +193,6 @@ export function useShoppingList() {
         description: 'Please try again',
         variant: 'destructive',
       });
-      
-      // Remove the item if database insert failed
-      setShoppingItems(items => items.filter(item => item.id !== newItem.id));
     }
   };
   
@@ -199,7 +231,16 @@ export function useShoppingList() {
       // If there's an error, we should reload the list
       const { data } = await supabase.from('shopping_list').select('*');
       if (data) {
-        setShoppingItems(data as ShoppingItemData[]);
+        const mappedData: ShoppingItemData[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity || 1,
+          unit: item.unit || 'pc',
+          category: item.category || 'General',
+          isChecked: item.isChecked || false,
+          note: item.note
+        }));
+        setShoppingItems(mappedData);
       }
     }
   };

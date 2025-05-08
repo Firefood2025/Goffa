@@ -9,18 +9,96 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      pantry_items: {
+      kitchen_styles: {
         Row: {
-          created_at: string
-          id: number
+          created_at: string | null
+          id: string
+          name: string
         }
         Insert: {
-          created_at?: string
-          id?: number
+          created_at?: string | null
+          id?: string
+          name: string
         }
         Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      pantry_items: {
+        Row: {
+          added_date: string | null
+          category: string | null
+          created_at: string
+          expiry_date: string | null
+          id: number
+          image_url: string | null
+          name: string | null
+          quantity: number | null
+          unit: string | null
+          user_id: string | null
+        }
+        Insert: {
+          added_date?: string | null
+          category?: string | null
           created_at?: string
+          expiry_date?: string | null
           id?: number
+          image_url?: string | null
+          name?: string | null
+          quantity?: number | null
+          unit?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          added_date?: string | null
+          category?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: number
+          image_url?: string | null
+          name?: string | null
+          quantity?: number | null
+          unit?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      shopping_list: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          ischecked: boolean | null
+          name: string
+          note: string | null
+          quantity: number | null
+          unit: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          ischecked?: boolean | null
+          name: string
+          note?: string | null
+          quantity?: number | null
+          unit?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          ischecked?: boolean | null
+          name?: string
+          note?: string | null
+          quantity?: number | null
+          unit?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

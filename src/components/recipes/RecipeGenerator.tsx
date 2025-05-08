@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,9 +31,19 @@ const RecipeGenerator: React.FC<RecipeGeneratorProps> = ({
   React.useEffect(() => {
     async function fetchPantry() {
       try {
-        const { data } = await supabase.from('pantry_items').select('name');
-        if (data) setPantryIngredients(data.map(p => p.name));
+        const { data, error } = await supabase
+          .from('pantry_items')
+          .select('name');
+          
+        if (error) {
+          throw error;
+        }
+        
+        if (data && Array.isArray(data)) {
+          setPantryIngredients(data.map(p => p.name).filter(Boolean));
+        }
       } catch (e) {
+        console.error('Error fetching pantry ingredients:', e);
         setPantryIngredients([]);
       }
     }

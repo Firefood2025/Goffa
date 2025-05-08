@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { ChefHat, RefrigeratorIcon, Plus, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
