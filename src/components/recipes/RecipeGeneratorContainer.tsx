@@ -4,6 +4,7 @@ import KitchenStyleSelector, { KitchenStyle } from '@/components/recipes/Kitchen
 import RecipeGenerator from '@/components/recipes/RecipeGenerator';
 import RecipeDetail, { GeneratedRecipe } from '@/components/recipes/RecipeDetail';
 import { Button } from '@/components/ui/button';
+import { Utensils } from 'lucide-react';
 
 interface RecipeGeneratorContainerProps {
   showGenerator: boolean;
@@ -48,9 +49,17 @@ const RecipeGeneratorContainer: React.FC<RecipeGeneratorContainerProps> = ({
         }}
         className="w-full bg-kitchen-green hover:bg-kitchen-green/90 mb-4"
       >
-        {showGenerator ? 'Browse Recipe Ideas' : 'Inspirations'}
+        {showGenerator ? (
+          <>Browse Recipe Ideas</>
+        ) : (
+          <>
+            <Utensils className="mr-2" size={18} />
+            Generate Recipes from Pantry
+          </>
+        )}
       </Button>
-      {showGenerator ? (
+      
+      {showGenerator && (
         <div>
           {selectedRecipe ? (
             <RecipeDetail
@@ -82,8 +91,9 @@ const RecipeGeneratorContainer: React.FC<RecipeGeneratorContainerProps> = ({
             </>
           )}
         </div>
-      ) : null}
+      )}
     </div>
   );
 };
+
 export default RecipeGeneratorContainer;

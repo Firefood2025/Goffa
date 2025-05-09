@@ -12,7 +12,7 @@ interface MealDBResponse {
   }> | null;
 }
 
-interface DetailedMeal {
+export interface DetailedMeal {
   id: string;
   title: string;
   image: string;
@@ -25,6 +25,7 @@ interface DetailedMeal {
   matchingIngredients: number;
   category?: string;
   tags?: string[];
+  tagline?: string;
 }
 
 const BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
@@ -53,6 +54,25 @@ const getDifficulty = (ingredientsCount: number, cookTime: number): 'Easy' | 'Me
   }
 };
 
+// Function to create a tagline based on recipe details
+const createTagline = (recipe: {
+  title: string;
+  cuisine?: string;
+  category?: string;
+  ingredients: string[];
+  cookTime: number;
+}): string => {
+  const taglines = [
+    `A delicious ${recipe.cuisine || ''} ${recipe.category?.toLowerCase() || 'dish'} ready in ${recipe.cookTime} minutes.`,
+    `Perfect ${recipe.category?.toLowerCase() || recipe.cuisine?.toLowerCase() || 'recipe'} for any occasion.`,
+    `Delightful ${recipe.title.toLowerCase()} with ${recipe.ingredients.length} simple ingredients.`,
+    `Experience authentic ${recipe.cuisine || 'culinary'} flavors with this ${recipe.cookTime}-minute recipe.`,
+    `A crowd-pleasing ${recipe.category?.toLowerCase() || 'meal'} that's sure to impress.`
+  ];
+  
+  return taglines[Math.floor(Math.random() * taglines.length)];
+};
+
 export const searchRecipesByIngredients = async (ingredients: string[]): Promise<DetailedMeal[]> => {
   try {
     if (!ingredients || ingredients.length === 0) {
@@ -62,7 +82,7 @@ export const searchRecipesByIngredients = async (ingredients: string[]): Promise
     // MealDB API can only filter by one ingredient at a time
     // We'll use the first ingredient to get initial recipes, then filter for matching others
     const mainIngredient = ingredients[0];
-    const response = await fetch(`${BASE_URL}/filter.php?i=${mainIngredient}`);
+    const response = await fetch(`${BASE_URL}/filter.php?i=${encodeURIComponent(mainIngredient)}`);
     const data: MealDBResponse = await response.json();
 
     if (!data.meals) return [];
@@ -81,11 +101,18 @@ export const searchRecipesByIngredients = async (ingredients: string[]): Promise
           )
         ).length;
         
-        // Only include recipes with at least 2 matching ingredients
+        // Only include recipes with at least 1 matching ingredient
         if (matchingIngredientsCount >= 1) {
           return {
             ...details,
-            matchingIngredients: matchingIngredientsCount
+            matchingIngredients: matchingIngredientsCount,
+            tagline: createTagline({
+              title: details.title, 
+              cuisine: details.cuisine,
+              category: details.category,
+              ingredients: details.ingredients,
+              cookTime: details.cookTime
+            })
           };
         }
         return null;
@@ -99,7 +126,7 @@ export const searchRecipesByIngredients = async (ingredients: string[]): Promise
     const filteredMeals = detailedMeals
       .filter((meal): meal is DetailedMeal => meal !== null)
       .sort((a, b) => b.matchingIngredients - a.matchingIngredients)
-      .slice(0, 10); // Return top 10 matches
+      .slice(0, 5); // Return top 5 matches
       
     return filteredMeals;
   } catch (error) {
@@ -151,6 +178,15 @@ export const getRecipeDetails = async (id: string): Promise<DetailedMeal | null>
     
     // Determine difficulty based on ingredients and cooking time
     const difficulty = getDifficulty(ingredients.length, cookTime);
+    
+    // Generate tagline
+    const tagline = createTagline({
+      title: meal.strMeal,
+      cuisine: meal.strArea,
+      category: meal.strCategory,
+      ingredients: ingredients,
+      cookTime: cookTime
+    });
 
     return {
       id: meal.idMeal,
@@ -164,7 +200,8 @@ export const getRecipeDetails = async (id: string): Promise<DetailedMeal | null>
       category: meal.strCategory,
       tags,
       difficulty,
-      matchingIngredients: 1 // Default value, will be updated when filtering
+      matchingIngredients: 1, // Default value, will be updated when filtering
+      tagline
     };
   } catch (error) {
     console.error('Error fetching recipe details:', error);
@@ -174,14 +211,24 @@ export const getRecipeDetails = async (id: string): Promise<DetailedMeal | null>
 
 export const searchRecipesByCuisine = async (cuisine: string): Promise<DetailedMeal[]> => {
   try {
-    const response = await fetch(`${BASE_URL}/filter.php?a=${cuisine}`);
+    const response = await fetch(`${BASE_URL}/filter.php?a=${encodeURIComponent(cuisine)}`);
     const data: MealDBResponse = await response.json();
 
     if (!data.meals) return [];
 
     const detailedMealsPromises = data.meals.slice(0, 15).map(async (meal) => {
       try {
-        return await getRecipeDetails(meal.idMeal);
+        const details = await getRecipeDetails(meal.idMeal);
+        return details ? {
+          ...details,
+          tagline: createTagline({
+            title: details.title, 
+            cuisine: details.cuisine,
+            category: details.category,
+            ingredients: details.ingredients,
+            cookTime: details.cookTime
+          })
+        } : null;
       } catch (error) {
         console.error(`Error fetching details for meal ${meal.idMeal}:`, error);
         return null;
@@ -216,7 +263,14 @@ export const getRandomRecipes = async (count: number = 5): Promise<DetailedMeal[
         if (recipeDetails) {
           meals.push({
             ...recipeDetails,
-            matchingIngredients: Math.floor(Math.random() * 3) + 1 // Random match count for display
+            matchingIngredients: Math.floor(Math.random() * 3) + 1, // Random match count for display
+            tagline: createTagline({
+              title: recipeDetails.title, 
+              cuisine: recipeDetails.cuisine,
+              category: recipeDetails.category,
+              ingredients: recipeDetails.ingredients,
+              cookTime: recipeDetails.cookTime
+            })
           });
         }
       }

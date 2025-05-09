@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Clock, ChefHat, Utensils, Share2, Copy, CheckCircle, ShoppingCart, Plus, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getIdAsString } from '@/integrations/supabase/client';
 
 export interface GeneratedRecipe {
   id?: string;
@@ -18,11 +19,14 @@ export interface GeneratedRecipe {
     carbs?: number;
     fat?: number;
   };
-  tagline: string;
+  tagline?: string;
   image?: string;
   cuisine?: string;
   category?: string;
   tags?: string[];
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
+  matchingIngredients?: number;
+  missingIngredients?: string[];
 }
 
 interface RecipeDetailProps {
@@ -64,7 +68,10 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
           
           // Identify missing ingredients
           const missing = recipe.ingredients
-            .filter(ingredient => !itemNames.includes(ingredient.toLowerCase()))
+            .filter(ingredient => !itemNames.some(item => 
+              ingredient.toLowerCase().includes(item) || 
+              item.includes(ingredient.toLowerCase())
+            ))
             .map((ingredient, index) => ({
               ingredient,
               measurement: recipe.measurements?.[index]
@@ -74,6 +81,13 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
         }
       } catch (error) {
         console.error('Error fetching pantry items:', error);
+        // Fallback to using recipe's missingIngredients if available
+        if (recipe.missingIngredients) {
+          setMissingIngredients(recipe.missingIngredients.map(ing => ({
+            ingredient: ing,
+            measurement: undefined
+          })));
+        }
       }
     };
     
@@ -88,7 +102,7 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
     
     const stepsList = recipe.steps.map((s, i) => `${i+1}. ${s}`).join('\n');
     
-    return `🍽️ ${recipe.title} 🍽️\n\n${recipe.tagline}\n\nCooking Time: ${recipe.cookTime} min\nStyle: ${recipe.cuisine || kitchenStyle}\n\n📋 INGREDIENTS:\n${ingredientsList}\n\n📝 INSTRUCTIONS:\n${stepsList}`;
+    return `🍽️ ${recipe.title} 🍽️\n\n${recipe.tagline || ''}\n\nCooking Time: ${recipe.cookTime} min\nStyle: ${recipe.cuisine || kitchenStyle}\n\n📋 INGREDIENTS:\n${ingredientsList}\n\n📝 INSTRUCTIONS:\n${stepsList}`;
   };
 
   const handleShare = async () => {
@@ -179,7 +193,7 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
           category: 'Recipe Ingredients',
           quantity: 1,
           unit: 'pc',
-          isChecked: false
+          ischecked: false
         }));
         
         const { error: insertError } = await supabase
@@ -224,7 +238,7 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
         
         <div className="mb-6 relative">
           <h1 className="text-2xl font-bold mb-2 text-kitchen-green">{recipe.title}</h1>
-          <p className="text-gray-600 italic">{recipe.tagline}</p>
+          <p className="text-gray-600 italic">{recipe.tagline || `A delicious ${recipe.cuisine || kitchenStyle} recipe`}</p>
           
           {onToggleFavorite && (
             <button
@@ -272,6 +286,21 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
                 <span className="px-2 py-1 bg-muted text-xs rounded-full">{recipe.category}</span>
               </>
             )}
+            
+            {recipe.difficulty && (
+              <>
+                <span className="mx-1">•</span>
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  recipe.difficulty === 'Easy' 
+                    ? 'bg-green-100 text-green-800' 
+                    : recipe.difficulty === 'Medium'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-red-100 text-red-800'
+                }`}>
+                  {recipe.difficulty}
+                </span>
+              </>
+            )}
           </div>
         </div>
         
@@ -311,25 +340,25 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
           <div className="mb-6 p-3 bg-muted rounded-lg">
             <h3 className="text-sm font-semibold mb-1">Nutrition Info (estimated)</h3>
             <div className="grid grid-cols-4 gap-2 text-xs text-center">
-              {recipe.nutrition.calories && (
+              {recipe.nutrition.calories !== undefined && (
                 <div>
                   <div className="font-bold">{recipe.nutrition.calories}</div>
                   <div className="text-gray-500">Calories</div>
                 </div>
               )}
-              {recipe.nutrition.protein && (
+              {recipe.nutrition.protein !== undefined && (
                 <div>
                   <div className="font-bold">{recipe.nutrition.protein}g</div>
                   <div className="text-gray-500">Protein</div>
                 </div>
               )}
-              {recipe.nutrition.carbs && (
+              {recipe.nutrition.carbs !== undefined && (
                 <div>
                   <div className="font-bold">{recipe.nutrition.carbs}g</div>
                   <div className="text-gray-500">Carbs</div>
                 </div>
               )}
-              {recipe.nutrition.fat && (
+              {recipe.nutrition.fat !== undefined && (
                 <div>
                   <div className="font-bold">{recipe.nutrition.fat}g</div>
                   <div className="text-gray-500">Fat</div>
