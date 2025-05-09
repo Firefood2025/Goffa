@@ -35,6 +35,7 @@ import {
 import CustomLists from '@/components/pantry/CustomLists';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ImageUploader from '@/components/pantry/ImageUploader';
+import { PantryItemData } from '@/components/pantry/PantryItem';
 
 export type CustomListType = {
   id: string;

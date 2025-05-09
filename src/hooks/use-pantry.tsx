@@ -100,11 +100,11 @@ export function usePantry() {
         )
       );
       
-      // Update in database
+      // Update in database - Convert string ID to number for the database
       const { error } = await supabase
         .from('pantry_items')
         .update({ quantity: updatedQuantity })
-        .eq('id', id);
+        .eq('id', parseInt(id));
         
       if (error) throw error;
     } catch (error) {
@@ -139,11 +139,11 @@ export function usePantry() {
         )
       );
       
-      // Update in database
+      // Update in database - Convert string ID to number for the database
       const { error } = await supabase
         .from('pantry_items')
         .update({ quantity: updatedQuantity })
-        .eq('id', id);
+        .eq('id', parseInt(id));
         
       if (error) throw error;
     } catch (error) {
@@ -178,11 +178,11 @@ export function usePantry() {
       // Remove from selected items if it was selected
       setSelectedItems(selected => selected.filter(itemId => itemId !== id));
       
-      // Delete from database
+      // Delete from database - Convert string ID to number for the database
       const { error } = await supabase
         .from('pantry_items')
         .delete()
-        .eq('id', id);
+        .eq('id', parseInt(id));
         
       if (error) throw error;
       
