@@ -10,7 +10,7 @@ export function useShoppingList() {
   const { toast } = useToast();
   const location = useLocation();
   
-  const [shoppingItems, setShoppingItems] = useState<ShoppingItemData[]>(mockShoppingItems);
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItemData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Handle items passed from Grab & Go mode or other routes
@@ -25,6 +25,23 @@ export function useShoppingList() {
             // Merge with existing items, avoid duplicates by name
             const existingNames = new Set(prev.map(item => item.name));
             const newItems = newList.items.filter(item => !existingNames.has(item.name));
+            
+            // Add new items to database asynchronously
+            newItems.forEach(async (item) => {
+              try {
+                await supabase.from('shopping_list').insert({
+                  name: item.name,
+                  quantity: item.quantity || 1,
+                  unit: item.unit || 'pc',
+                  category: item.category || 'General',
+                  ischecked: item.isChecked || false,
+                  note: item.note
+                });
+              } catch (err) {
+                console.error('Error adding item to shopping list:', err);
+              }
+            });
+            
             return [...prev, ...newItems];
           });
           
@@ -38,17 +55,20 @@ export function useShoppingList() {
     }
   }, [location.state, toast]);
   
-  // Fetch items from Supabase if available
+  // Fetch items from Supabase
   useEffect(() => {
     const fetchShoppingItems = async () => {
       try {
         const { data, error } = await supabase
           .from('shopping_list')
-          .select('*');
+          .select('*')
+          .order('created_at', { ascending: false });
         
         if (error) throw error;
         
         if (data && data.length > 0) {
+          console.log('Shopping items from DB:', data);
+          
           // Map the data to ShoppingItemData format
           const mappedData: ShoppingItemData[] = data.map(item => ({
             id: getIdAsString(item.id),
@@ -62,6 +82,7 @@ export function useShoppingList() {
           
           setShoppingItems(mappedData);
         } else {
+          console.log('No shopping items found in DB, using mock data fallback');
           // Use mock data as fallback
           setShoppingItems(mockShoppingItems);
         }
@@ -165,7 +186,7 @@ export function useShoppingList() {
     try {
       // Create a new item with the provided data
       const newItem: ShoppingItemData = {
-        id: `new-${Date.now()}`, // Temporary ID
+        id: `temp-${Date.now()}`, // Temporary ID that will be replaced by DB ID
         name: newItemData.name || 'New Item',
         quantity: newItemData.quantity || 1,
         unit: newItemData.unit || 'pc',
@@ -174,7 +195,10 @@ export function useShoppingList() {
         note: newItemData.note
       };
       
-      // Add to database if Supabase is available
+      // Optimistic UI update - add to the list immediately
+      setShoppingItems(items => [newItem, ...items]);
+      
+      // Add to database
       const { data, error } = await supabase
         .from('shopping_list')
         .insert({
@@ -202,10 +226,12 @@ export function useShoppingList() {
           note: data.note
         };
         
-        setShoppingItems(items => [...items, dbItem]);
-      } else {
-        // Fallback to using the item with temporary ID
-        setShoppingItems(items => [...items, newItem]);
+        // Replace temp item with DB item
+        setShoppingItems(items => 
+          items.map(item => 
+            item.id === newItem.id ? dbItem : item
+          )
+        );
       }
       
       toast({
@@ -220,6 +246,9 @@ export function useShoppingList() {
         description: 'Please try again',
         variant: 'destructive',
       });
+      
+      // Remove the temporary item if saving fails
+      setShoppingItems(items => items.filter(item => item.id !== `temp-${Date.now()}`));
     }
   };
   
@@ -235,6 +264,7 @@ export function useShoppingList() {
       setShoppingItems(items => items.filter(item => !item.isChecked));
       
       // Delete from database if Supabase is available
+      // Note: For UUID columns we need to make sure the string is a valid UUID
       const { error } = await supabase
         .from('shopping_list')
         .delete()

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase, getIdAsString } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 // Define the ExpiringSoonItem interface to match expected types
 interface ExpiringSoonItem {
@@ -19,6 +20,7 @@ interface ExpiringSoonSectionProps {
 const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propItems }) => {
   const [items, setItems] = useState<ExpiringSoonItem[]>(propItems);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchExpiringSoonItems = async () => {
@@ -37,6 +39,7 @@ const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propIt
         if (error) throw error;
         
         if (data && data.length > 0) {
+          console.log('Expiring soon items from DB:', data);
           const expiringSoonItems: ExpiringSoonItem[] = data.map(item => {
             const expiryDate = new Date(item.expiry_date || '');
             const diffTime = expiryDate.getTime() - today.getTime();
@@ -52,11 +55,17 @@ const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propIt
           
           setItems(expiringSoonItems);
         } else {
+          console.log('No expiring items found in DB, using props fallback');
           // Use the props items as fallback
           setItems(propItems);
         }
       } catch (error) {
         console.error('Error fetching expiring soon items:', error);
+        toast({
+          title: 'Error loading expiring items',
+          description: 'Could not connect to database. Using demo data instead.',
+          variant: 'destructive',
+        });
         // Use props items on error
         setItems(propItems);
       } finally {
@@ -65,7 +74,7 @@ const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propIt
     };
     
     fetchExpiringSoonItems();
-  }, [propItems]);
+  }, [propItems, toast]);
 
   if (isLoading) {
     return (
