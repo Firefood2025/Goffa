@@ -1,10 +1,12 @@
+
 import React, { useEffect, useState } from 'react';
 import { Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getIdAsString } from '@/integrations/supabase/client';
 
+// Define the ExpiringSoonItem interface to match expected types
 interface ExpiringSoonItem {
-  id: string;
+  id: string; // Define id as string to match what's expected
   name: string;
   daysLeft: number;
   image?: string;
@@ -35,14 +37,14 @@ const ExpiringSoonSection: React.FC<ExpiringSoonSectionProps> = ({ items: propIt
         if (error) throw error;
         
         if (data && data.length > 0) {
-          const expiringSoonItems = data.map(item => {
-            const expiryDate = new Date(item.expiry_date);
+          const expiringSoonItems: ExpiringSoonItem[] = data.map(item => {
+            const expiryDate = new Date(item.expiry_date || '');
             const diffTime = expiryDate.getTime() - today.getTime();
             const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             return {
-              id: item.id,
-              name: item.name,
+              id: getIdAsString(item.id),
+              name: item.name || '',
               daysLeft: daysLeft,
               image: item.image_url
             };

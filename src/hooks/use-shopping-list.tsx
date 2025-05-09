@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingItemData } from '@/components/shopping/ShoppingItem';
 import { mockShoppingItems } from '@/lib/data';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getIdAsString } from '@/integrations/supabase/client';
 
 export function useShoppingList() {
   const { toast } = useToast();
@@ -51,12 +51,12 @@ export function useShoppingList() {
         if (data && data.length > 0) {
           // Map the data to ShoppingItemData format
           const mappedData: ShoppingItemData[] = data.map(item => ({
-            id: item.id,
+            id: getIdAsString(item.id),
             name: item.name,
             quantity: item.quantity || 1,
             unit: item.unit || 'pc',
             category: item.category || 'General',
-            isChecked: item.isChecked || false,
+            isChecked: item.ischecked || false, // Map from ischecked (DB) to isChecked (code)
             note: item.note
           }));
           
@@ -100,7 +100,7 @@ export function useShoppingList() {
       // Update in database if Supabase is available
       const { error } = await supabase
         .from('shopping_list')
-        .update({ isChecked: updatedItem.isChecked })
+        .update({ ischecked: updatedItem.isChecked }) // Use ischecked for DB, isChecked for UI
         .eq('id', id);
         
       if (error) throw error;
@@ -182,7 +182,7 @@ export function useShoppingList() {
           quantity: newItem.quantity,
           unit: newItem.unit,
           category: newItem.category,
-          isChecked: newItem.isChecked,
+          ischecked: newItem.isChecked, // Use ischecked for DB, isChecked for UI
           note: newItem.note
         })
         .select('*')
@@ -193,12 +193,12 @@ export function useShoppingList() {
       // Use the returned item with the proper database ID
       if (data) {
         const dbItem: ShoppingItemData = {
-          id: data.id,
+          id: getIdAsString(data.id),
           name: data.name,
           quantity: data.quantity || 1,
           unit: data.unit || 'pc',
           category: data.category || 'General',
-          isChecked: data.isChecked || false,
+          isChecked: data.ischecked || false, // Map from ischecked (DB) to isChecked (UI)
           note: data.note
         };
         
@@ -259,12 +259,12 @@ export function useShoppingList() {
       const { data } = await supabase.from('shopping_list').select('*');
       if (data) {
         const mappedData: ShoppingItemData[] = data.map(item => ({
-          id: item.id,
+          id: getIdAsString(item.id),
           name: item.name,
           quantity: item.quantity || 1,
           unit: item.unit || 'pc',
           category: item.category || 'General',
-          isChecked: item.isChecked || false,
+          isChecked: item.ischecked || false, // Map from ischecked (DB) to isChecked (UI)
           note: item.note
         }));
         setShoppingItems(mappedData);

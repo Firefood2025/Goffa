@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { ChefHat, RefrigeratorIcon, Plus, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -13,12 +14,25 @@ import ChefTile from '@/components/home/ChefTile';
 
 import { getExpiringSoonItems } from '@/lib/data';
 import { useSpaces } from '@/hooks/use-spaces';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getIdAsString } from '@/integrations/supabase/client';
+
+// Define the ExpiringSoonItem interface to match what's in ExpiringSoonSection
+interface ExpiringSoonItem {
+  id: string;
+  name: string;
+  daysLeft: number;
+  image?: string;
+}
 
 const Index = () => {
   const navigate = useNavigate();
   const { spaces } = useSpaces();
-  const [expiringSoonItems, setExpiringSoonItems] = useState(getExpiringSoonItems(7));
+  // Convert mock items to use string IDs
+  const initialItems = getExpiringSoonItems(7).map(item => ({
+    ...item,
+    id: item.id.toString()
+  }));
+  const [expiringSoonItems, setExpiringSoonItems] = useState<ExpiringSoonItem[]>(initialItems);
   
   // Animation variants
   const containerVariants = {
@@ -59,14 +73,14 @@ const Index = () => {
         if (error) throw error;
         
         if (data && data.length > 0) {
-          const items = data.map(item => {
-            const expiryDate = new Date(item.expiry_date);
+          const items: ExpiringSoonItem[] = data.map(item => {
+            const expiryDate = new Date(item.expiry_date || '');
             const diffTime = expiryDate.getTime() - today.getTime();
             const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             return {
-              id: item.id,
-              name: item.name,
+              id: getIdAsString(item.id),
+              name: item.name || '',
               daysLeft,
               image: item.image_url
             };
