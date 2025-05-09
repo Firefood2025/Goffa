@@ -25,7 +25,7 @@ export interface DetailedMeal {
   matchingIngredients: number;
   category?: string;
   tags?: string[];
-  tagline?: string;
+  tagline: string; // Changed from optional to required to match usage
 }
 
 const BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
@@ -105,14 +105,7 @@ export const searchRecipesByIngredients = async (ingredients: string[]): Promise
         if (matchingIngredientsCount >= 1) {
           return {
             ...details,
-            matchingIngredients: matchingIngredientsCount,
-            tagline: createTagline({
-              title: details.title, 
-              cuisine: details.cuisine,
-              category: details.category,
-              ingredients: details.ingredients,
-              cookTime: details.cookTime
-            })
+            matchingIngredients: matchingIngredientsCount
           };
         }
         return null;
@@ -219,16 +212,7 @@ export const searchRecipesByCuisine = async (cuisine: string): Promise<DetailedM
     const detailedMealsPromises = data.meals.slice(0, 15).map(async (meal) => {
       try {
         const details = await getRecipeDetails(meal.idMeal);
-        return details ? {
-          ...details,
-          tagline: createTagline({
-            title: details.title, 
-            cuisine: details.cuisine,
-            category: details.category,
-            ingredients: details.ingredients,
-            cookTime: details.cookTime
-          })
-        } : null;
+        return details;
       } catch (error) {
         console.error(`Error fetching details for meal ${meal.idMeal}:`, error);
         return null;
@@ -263,14 +247,7 @@ export const getRandomRecipes = async (count: number = 5): Promise<DetailedMeal[
         if (recipeDetails) {
           meals.push({
             ...recipeDetails,
-            matchingIngredients: Math.floor(Math.random() * 3) + 1, // Random match count for display
-            tagline: createTagline({
-              title: recipeDetails.title, 
-              cuisine: recipeDetails.cuisine,
-              category: recipeDetails.category,
-              ingredients: recipeDetails.ingredients,
-              cookTime: recipeDetails.cookTime
-            })
+            matchingIngredients: Math.floor(Math.random() * 3) + 1 // Random match count for display
           });
         }
       }
